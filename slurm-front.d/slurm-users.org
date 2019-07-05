@@ -1,0 +1,1505 @@
+#+TITLE:Slurm for the Rest of Us: A Primer
+Slurm is the Simple Linux Utility for Resource Management. What
+follows is a brief documentary primer on how to use Slurm, how it
+approximately functions, and a whole lot of links to the /real/
+documentation from the folks who designed it!
+
+* A brief overview:
+
+  Slurm has four or five [[The structure of Slurm:][main components]] and a few [[Some basic concepts:][core concepts]] that
+  you might want to know about, simply for informational purposes so as
+  to make it a wee bit less mysterious. Peppered throughout will be
+  links to the [[https://slurm.schedmd.com/documentation.html][official Slurm documentation]] for your perusal, though
+  hopefully this primer will get you started. Its purpose is effectively
+  to constrain the amount of reading you /must/ do in order become a
+  Slurm user, while also focusing in on some domains where I've noticed
+  new users have problems. Additionally, I'll be updating this
+  documentation at the request of our users, so hopefully it should
+  better reflect the questions you /actually/ have!
+
+  For reference, Slurm provides a [[https://slurm.schedmd.com/quickstart.html][quickstart guide]] which covers a lot
+  this stuff too.
+
+  Anyway, aside from the most generic of intentions, these sections are
+  in no peculiar order, and instead you're supposed to follow the links
+  if you want to know about something. The [[At the command line:][command line stuff]] comes at
+  the beginning, and, ideally, if you're curious for more information,
+  there /should/ be a hyperlink (at least in the eventual form of this
+  document) which points to a relevant section!
+
+** At the command line:
+
+   To get up and running with Slurm, you'll need to know a few basic
+   commands. We'll start with a [[Your first Slurm job, informally:][very pedagogically informal examples]],
+   and then move on to [[Command basics:][most essential commands]], what they do, and when
+   you'll want to use them. Luckily with Slurm, almost all commands
+   with similar semantics have semantically and syntactically identical
+   (or nearly identical) arguments and options, making it easy to
+   remember them. What does that mean, specifically? It means if
+   something /seems/ like it should work the same way as something
+   else, because they sound similar or related, then you can bet they
+   almost always have the same options; and, in fact, they /do/ work in
+   the same way internally.
+
+*** Your first Slurm job, informally:
+
+    Here follows a walkthrough of your first Slurm job. The idea here
+    is to be informationally sparse but to allow you to see what what
+    you might expect from running a job. In the examples below and
+    hereafter, we'll use =$= to represent a command line you typed,
+    and =>= to represent the output of that command as printed to the
+    screen, so that we can explain what you'll see. I'm going to
+    assume the reader has at least a very basic understanding of
+    command-line semantics for bash. If you don't have this, go visit
+    [[https://swcarpentry.github.io/shell-novice/][this site]].
+
+    For longer examples we'll use proper code blocks. I'd encourage
+    you to follow alongside these instructions, just to get a handle
+    on the way these commands work at the command line.  After this
+    initial series of examples, we'll cover get a bit more depth on
+    the [[Sbatch and then some:][primary job-submitting command]] showcased here, then get down
+    to [[Command basics:][covering each common command]].
+
+    Let's start with a script, it can be anything - just a bash
+    script. Let's run it with sbatch:
+
+    #+BEGIN_SRC bash
+    $ sbatch some-script.sh
+
+    > Submitted batch job 122869
+    #+END_SRC
+
+    Success! You're now a Slurm user. Mission accomplished. Forth, and
+    fear no darkness! Realistically, though, this tells us very
+    little. What just happened? Let's say this is some-script.sh:
+    
+    #+BEGIN_SRC bash
+#!/bin/bash
+
+hostname -f
+uptime
+    #+END_SRC
+
+    The first thing to note is that this "Slurm script" is just a
+    regular old bash script. Slurm can handle any job that you would
+    ordinarily run with bash. While normally you would run a bash
+    script with bash itself, either like this:
+
+    #+BEGIN_SRC bash
+    $ bash ./some-script.sh
+
+    > {output}
+    #+END_SRC
+
+    Or equivalently like this:
+
+    #+BEGIN_SRC bash
+    $ ./some-script.sh
+
+    > {output}
+    #+END_SRC
+
+    To run that script on Slurm, we use Slurm commands, which ensures
+    that Slurm handles the distribution of the job across the lab's
+    machines. Slurm commands for this purpose include [[Sbatch:][sbatch]], [[Salloc:][salloc]],
+    and [[Srun:][srun]]. Nine times out of ten, we'll be using sbatch, as it
+    handles the full responsiblity of reading your script, finding
+    computers to run it on, and organising the scheduling for many
+    possibly competing jobs from many users.
+
+    If we ran this script off the queue, as below, we'd expect the
+    following (or something like it):
+
+    #+BEGIN_SRC bash
+    $ bash ./some-script.sh
+
+    > mrsdti.camhres.ca
+    >  13:23:37 up 37 days, 20:00,  3 users,  load average: 0.53, 0.45, 0.36
+    #+END_SRC
+
+    But when we run it with sbatch, Slurm simply announces that it
+    submitted the job and gave it an ID number. So let's check out our
+    job with the [[Sacct:][sacct]] command, as we always should when submitting.
+    Sacct gives you a rundown of your jobs:
+
+    #+BEGIN_SRC bash
+    $ sacct | tail
+
+    >       JobID    JobName  Partition    Account  AllocCPUS      State ExitCode
+    >------------ ---------- ---------- ---------- ---------- ---------- --------
+    >122869       some-scri+       moby    tigrlab          1  COMPLETED      0:0
+    >122869.batch      batch               tigrlab          1  COMPLETED      0:0
+    >122869.exte+     extern               tigrlab          1  COMPLETED      0:0
+    #+END_SRC
+
+    See how our job ID number appears more than once? Basically, it
+    doesn't matter that this happens, it simply indicates that all
+    aspects of Slurm job execution were successful. All that matters
+    is that we see none of them failed. If it were the case that
+    =some-script.sh= itself was complex, having multiple parts to it,
+    then sbatch showing multiple "components" like this for each job
+    ID starts to make more sense.
+
+    We also =tailed= the output of sacct just because if there's a
+    million jobs we've run in the past, we don't want to see all of
+    them in a giant list; only the last one we ran should be of
+    interest, though if we've recently submitted a large number of
+    jobs at once, we may want to see the whole list in case some have
+    failed and others are still ongoing. But how can we learn more
+    about our job?
+
+    With the [[Scontrol:][scontrol]] command, we can view and change all sorts of
+    things about our jobs, querying them with the job ID provided when
+    we submitted with sbatch.
+
+    *IMPORTANT FSCKING NOTE: Scontrol has tab completion! Use it!*
+
+    #+BEGIN_SRC bash
+    $ scontrol show jobid=122869
+
+    > JobId=122869 JobName=some-script.sh
+    >    UserId=kwitczak(10073) GroupId=kimel(10505) MCS_label=N/A
+    >    Priority=38157 Nice=0 Account=tigrlab QOS=normal
+    >    JobState=COMPLETED Reason=None Dependency=(null)
+    >    Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0
+    >    RunTime=00:00:00 TimeLimit=UNLIMITED TimeMin=N/A
+    >    SubmitTime=2019-06-13T14:42:01 EligibleTime=2019-06-13T14:42:01
+    >    AccrueTime=2019-06-13T14:42:01
+    >    StartTime=2019-06-13T14:42:02 EndTime=2019-06-13T14:42:02 Deadline=N/A
+    >    PreemptEligibleTime=2019-06-13T14:42:02 PreemptTime=None
+    >    SuspendTime=None SecsPreSuspend=0 LastSchedEval=2019-06-13T14:42:02
+    >    Partition=moby AllocNode:Sid=mrsdti.camhres.ca:26130
+    >    ReqNodeList=(null) ExcNodeList=(null)
+    >    NodeList=cajal
+    >    BatchHost=cajal
+    >    NumNodes=1 NumCPUs=1 NumTasks=0 CPUs/Task=1 ReqB:S:C:T=0:0:*:*
+    >    TRES=cpu=1,mem=1G,node=1,billing=1
+    >    Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=*
+    >    MinCPUsNode=1 MinMemoryCPU=1G MinTmpDiskNode=0
+    >    Features=(null) DelayBoot=00:00:00
+    >    OverSubscribe=OK Contiguous=0 Licenses=(null) Network=(null)
+    >    Command=/home/kwitczak/some-script.sh
+    >    WorkDir=/home/kwitczak
+    >    StdErr=/home/kwitczak/slurm-122869.out
+    >    StdIn=/dev/null
+    >    StdOut=/home/kwitczak/slurm-122869.out
+    >    Power=
+    #+END_SRC
+
+    Phew! Okay, that's a lot of information, most of it useless!
+    Let's single out some information we might actually care about.
+    You can grep this on your own, but here I'll pluck out some lines:
+
+    #+BEGIN_SRC bash
+    Line 04: JobState=COMPLETED [...]
+    Line 12: Partition=moby AllocNode:Sid=mrsdti.camhres.ca:26130
+    Line 14: NodeList=cajal
+    Line 16: NumNodes=1 NumCPUs=1 NumTasks=0 CPUs/Task=1 [...]
+    Line 22: Command=/home/kwitczak/some-script.sh
+    Line 23: WorkDir=/home/kwitczak
+    Line 24: StdErr=/home/kwitczak/slurm-122869.out
+    Line 25: StdIn=/dev/null
+    Line 26: StdOut=/home/kwitczak/slurm-122869.out=
+    #+END_SRC
+
+    This tells us a decent amount. =JobState= just tells us what the
+    *current* state of the job is, *as of when we ran scontrol*.
+    Since the job is already done, it's COMPLETED. If it's still
+    going, it'll say RUNNING, and if it FAILED, you know to look into
+    why it failed. =Partition= tells us which [[Partition:][partition]] the job was
+    submitted to.
+
+    A partition in brief is a sub-division of our lab's computers -
+    =moby=, seen here, is /the default partition/ that lets your job
+    run /on any machines in the lab/, so long as you don't care /where
+    or when it happens to run/. If you don't ask for a specific
+    partition, your jobs will be able to run anywhere, though other
+    people's jobs might jump ahead of yours in the queue because they
+    specially requested the use of certain machines, and thus they get
+    priority access to them.
+
+    =AllocNode= is the computer where you ran =sbatch some-script.sh=.
+    =NodeList= tells us what machine(s) =some-script.sh= actually ran
+    on. /We ran sbatch on mrsdti, but =some-script.sh= itself ran on
+    cajal./ =NumNodes=, =NumCPUs=, =NumTasks=, and =CPUS/Task=,
+    describe, respectively, how many machines we asked for, how many
+    CPU cores per machine, how many "tasks" we ran (again, if our
+    script was more complex, with several different "steps", this
+    would be relevant), and how many CPU cores we assigned to each
+    task.
+
+    All of these values are default: you can choose different options
+    [[Allocating resouces:][at your own discretion]], but if you choose no values, you will
+    always get /exactly the following/:
+
+    1) one computer (node)
+       which will yield
+    2) one CPU core
+       which will be assigned
+    3) one gigabyte of RAM
+       to perform
+    4) one copy of your job
+    
+    Any machine in the lab will be a candidate to run your job in this
+    default case.
+
+    #+BEGIN_SRC bash
+    Line 22: Command=/home/kwitczak/some-script.sh
+    Line 23: WorkDir=/home/kwitczak
+    Line 24: StdErr=/home/kwitczak/slurm-122869.out
+    Line 25: StdIn=/dev/null
+    Line 26: StdOut=/home/kwitczak/slurm-122869.out
+    #+END_SRC
+
+    Lines 22-26 contain some vital information - what command was run,
+    what directory it was run in, and where Slurm sent its logs. You
+    may think the logs will have gone into our home directory, and
+    that's true, *but the logs went into our home directory on the
+    machine where the job was run!* Not, as one would hope, on the
+    machine where you ran sbatch from. This means that when you use
+    scontrol to show your job, and you want to find out how it went,
+    you have to SSH to the node listed in =NodeList= to see the logs
+    and find out about it.
+
+    More to the point, however, you /should/ use special sbatch
+    flags, such as the [[-e, --error=][--error=]] and the [[-o, --output=][--output=]] flags, to specify a
+    common folder (in your scratch or projects) where all jobs, on any
+    computer, will send their logs. This way you won't have to SSH to
+    another machine to check the results. In any case, on cajal, in
+    our home directory, is a logfile called =slurm-122869.out=:
+
+    #+BEGIN_SRC bash
+    $ cat slurm-122869.out
+    > cajal.camhres.ca
+    >  14:42:02 up 8 days,  5:00,  1 user,  load average: 0.28, 0.10, 0.03
+    #+END_SRC
+
+    The exact output we'd expect from running "=hostname -f; uptime="
+    on cajal at the exact time I wrote this! Useless! Keep in mind
+    that it is /very/ important to always check your jobs right after
+    submitting them; even a job that fails *will still just report
+    that it was successfully submitted by Slurm and given a number!*
+    Suppose for example that =some-script.sh= contains this:
+
+    #+BEGIN_SRC bash
+#!/bin/bash
+
+false && echo "I'm a failure and I know it!";
+exit 1
+    #+END_SRC
+
+    Clearly, this job has some issues. The expected result of running
+    this script off Slurm is that it should not echo anything (because
+    false is never true), and then commit unceremonious hari kari with
+    a failing exit code. Let's try running it, with output and error
+    logs directed into a file in our scratch directory. If there were
+    real work in this script, we'd expect it to not get done. Note
+    that below, we'll use the short form of =--error== and
+    =--output==, which are =-e= and =-o=, respectively.
+
+    #+BEGIN_SRC bash
+    $ sbatch -o /scratch/kwitczak/slurm-logs.out \
+              -e /scratch/kwitczak/slurm-logs.out some-script.sh
+
+    > Submitted batch job 122870
+    #+END_SRC
+
+    Hmmm. What about...
+
+    #+BEGIN_SRC bash
+    $ sacct | tail
+
+    > 122869       some-scri+       moby    tigrlab          1  COMPLETED      0:0
+    > 122869.batch      batch               tigrlab          1  COMPLETED      0:0
+    > 122869.exte+     extern               tigrlab          1  COMPLETED      0:0
+    > 122870       some-scri+       moby    tigrlab          1     FAILED      1:0
+    > 122870.batch      batch               tigrlab          1     FAILED      1:0
+    > 122870.exte+     extern               tigrlab          1  COMPLETED      0:0
+    #+END_SRC
+
+    D'oh! What happens if...
+
+    #+BEGIN_SRC bash
+    $ scontrol show jobid=122870 | grep JobState
+
+    > JobState=FAILED Reason=NonZeroExitCode [...]
+    #+END_SRC
+
+    Oh no. And...?
+
+    #+BEGIN_SRC bash
+    $ cat /scratch/kwitczak/slurm-logs.out
+
+    >
+    #+END_SRC
+
+    Nothing! And yet, Slurm /did/ create its output log where we said
+    it should! The output log is empty, because the script fails to
+    echo anything. It's /our responsibility/ to ensure the jobs we
+    submit provide good logging, so that we can know what happens to
+    them whether they succeed or they fail. The management is not
+    responsible for the results of users running lengthy jobs over
+    holiday weekends and /not checking them after submission/, let
+    alone not providing good logging for them. With sbatch, Slurm will
+    almost always /seemingly/ report some kind of success, even if
+    everything else about the job goes down in flames, all sbatch
+    cares about is successfully accepting job submissions. To sum up:
+
+    1) *A slurm job script is just a standard bash script.*
+    2) *Submit your scripts as Slurm jobs with the sbatch command.*
+    3) *Immediately check on them with sacct, otherwise you may miss if they fail.*
+    4) *If any further information is needed, query the jobid with scontrol show.*
+    5) *Always put the logs somewhere you'll find them with -e and -o. Otherwise they'll*
+        *be scattered on every machine that part of your job ran on.*
+
+*** Sbatch and then some:
+
+     So as we've seen, running a job with sbatch is kind of like
+     running a script with bash or a python script with python, except
+     that sbatch sees to it that the script will run on possibly many
+     machines, possibly not even including the machine where you ran
+     the =sbatch= command from. What really matters to your ability to
+     successfully use Slurm is to leverage sbatch's /options/. Let's
+     take a look at a more general Slurm-ready job script.[fn:1]
+
+     #+BEGIN_SRC bash
+#!/usr/bin/env bash
+
+#SBATCH --partition=compute
+#SBATCH --cpus-per-task=4
+#SBATCH --export=ALL
+#SBATCH --job-name STUDY_fmriprep
+#SBATCH --output=fmriprep_%j.txt
+#SBATCH --time=24:00:00
+#SBATCH --mem-per-cpu=2G
+#SBATCH --array=1-899%40
+
+sublist="/scratch/userdirectory/STUDY_fmriprep/subjects_part1.txt"
+
+index() {
+   head -n $SLURM_ARRAY_TASK_ID $sublist \
+   | tail -n 1
+}
+
+bids_dir=/scratch/userdirectory/STUDY/data/bids
+output_dir=/scratch/userdirectory/STUDY_fmriprep/output
+work_dir=/scratch/userdirectory/STUDY_fmriprep/work
+tmp_dir=/scratch/userdirectory/STUDY_fmriprep/tmp
+freesurfer_license=/scratch/userdirectory/license.txt
+sing_container=/scratch/userdirectory/singularity/fmriprep-latest.sing
+
+module load singularity 
+
+singularity run \
+  -H ${tmp_dir} \
+  -B ${bids_dir}:/bids \
+  -B ${output_dir}:/out \
+  -B ${work_dir}:/work \
+  -B ${freesurfer_license}:/li \
+  ${sing_container} \
+  /bids /out participant \
+  --participant_label=`index` \
+  -w /work \
+  --fs-license-file /li \
+  --anat-only \
+  --n_cpus 4 \
+  --output-space T1w template \
+  --use-aroma
+     #+END_SRC
+
+     This is a script which takes a bunch of elements and feeds them
+     to a singularity container for processing, with appropriate
+     input, output, and working dirs specified. In an ordinary bash
+     script, we might run this as a loop, where we'd stick all the
+     subjects into a file or a variable and run one container for
+     each. Alternatively, if we are cool and hip and jive with the
+     times, we'd probaby use parallel to queue up a whole bunch of
+     singularity containers on a bunch of job data at once. What is
+     Slurm bringing to the table in this script?
+
+     1) [[SBATCH option examples:][Options:]]
+     
+     #+BEGIN_SRC bash
+#SBATCH --partition=compute
+#SBATCH --cpus-per-task=4
+#SBATCH --export=ALL
+#SBATCH --job-name STUDY_fmriprep
+#SBATCH --output=fmriprep_%j.txt
+#SBATCH --time=24:00:00
+#SBATCH --mem-per-cpu=2G
+#SBATCH --array=1-899%40
+     #+END_SRC
+
+     These are #SBATCH options and they are, in fact, nothing more
+     than command line flags for sbatch. A Slurm script can be called
+     the following way:
+
+     #+BEGIN_SRC bash
+     $ sbatch --partition=compute --cpus-per-task=4 [...] some-script.sh
+     #+END_SRC
+
+     Which is equivalent to running a script beginning with:
+
+     #+BEGIN_SRC bash
+#!/usr/bin/env bash
+
+#SBATCH --partition=compute
+#SBATCH --cpus-per-task=4
+#SBATCH [...]
+     #+END_SRC
+
+     But if you know in advance exactly what options your script will
+     require (how many CPU cores, how much RAM, how many computers it
+     will run across, how long it should take etc.), sticking these
+     options at the top of the actual script provides an easy way of
+     hygienically "baking the options into" job, so that you don't
+     have to type them correctly on the command line each time you run
+     it.
+
+     2) [[Fscking arrays, how do they work?:][Arrays:]]
+
+     #+BEGIN_SRC bash
+sublist="/scratch/userdirectory/STUDY_fmriprep/subjects_part1.txt"
+
+index() {
+   head -n $SLURM_ARRAY_TASK_ID $sublist \
+   | tail -n 1
+}
+     #+END_SRC
+
+     #+BEGIN_SRC bash
+  --participant_label=`index` \
+     #+END_SRC
+
+     This is an example of how to use a Slurm array in a script.  An
+     array in the Slurm context is much like an array in any other
+     programming context: it's an ordered series of objects, each
+     distinguishable by a numerical index. Where outside of Slurm you
+     may use a text file or a variable listing all of the unique data
+     elements you wish to work on, in Slurm you would use an array to
+     tell Slurm that a certain number of jobs will be expected to be
+     run, possibly on a certain series of distinct data.
+
+     3) [[Allocating resouces:][Resource Constraint]]
+
+     Slurm provides you with the capability to realistically constrain
+     the resources that will be utilised in a job. For example:
+
+     #+BEGIN_SRC bash
+#SBATCH --partition=compute
+#SBATCH --cpus-per-task=4
+#SBATCH --time=24:00:00
+#SBATCH --array=1-899%40
+     #+END_SRC
+
+     This subset of the #SBATCH options indicates exactly which nodes
+     this job will be eligible to run on (e.g. all the nodes in the
+     /compute/ partition), exactly how many CPU cores will work on
+     your job /per subject/ (cpus-per-task), how long it will be
+     allowed to run for (time), exactly how many gigabytes of RAM
+     (mem-per-cpu), and how many jobs should be allowed to run
+     simultaneously ([[ArrayTaskThrottle: Yes, yes, I'm getting to it!][array]]). What is unique about Slurm is that the
+     resources assigned to run a job /cannot/ be exceeded.  This is
+     particularly meaningful in our lab, where many pieces of software
+     we commonly utilise demand unreasonably huge or possibly
+     unreasonably growing amounts of resources, frequently taking over
+     whole machines and rendering them otherwise out of service.
+
+     But with this sort of power of constraint comes the responsiblity
+     to realistically apprais the size of jobs and assign sensible
+     amounts of resources to them.
+
+**** SBATCH option examples:
+
+     These lines don't have to be there, and sbatch will work fine on
+     a script without them (as we saw with =some-script.sh= in the
+     first example), but if #SBATCH lines are present in a script
+     intended for Slurm, they *must* be the first thing to come after
+     the shebang or they won't be checked by Slurm. #SBATCH lines
+     specify /Slurm options/ for how to run this script. These are
+     just meta options which do not affect the script itself, but are
+     recognised by Slurm and tell it how to distribute the script
+     parallelly across possibly many machines. Their meaning in this
+     example is as follows:
+
+     1) =#SBATCH --partition=compute
+	Means that we want Slurm to send this script only to machines
+        that are part of this particular named partition. As said
+        above, a partition is just a named subset of machines. Other
+        machines not present in this partition will be inelibigle to
+        run this script even if they are otherwise sitting idle.  You
+        can see which partitions include which machines with
+        [[Sinfo:][sinfo]]. Here's an example of this from our queue:
+
+     #+BEGIN_SRC bash
+$ sinfo
+
+> PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+> thunk        up    1:00:00      4   idle golgi,hebb,laplace,mrsdti
+> cudansha     up   infinite      1  down* purkinje
+> cudansha     up   infinite      7   idle bulbasaur,darwin,higgs,hopper,mendel,zerbina,zippy
+> low-moby     up 1-08:00:00      1  down* purkinje
+> low-moby     up 1-08:00:00     20   idle bulbasaur,cajal,crick,darwin,davinci,franklin,higgs,hopper,k
+> andel,lovelace,mansfield,mendel,milner,nissl,penfield,strangelove,talairach,tesla,zerbina,zippy
+> high-moby    up   infinite      4    mix deckard,downie,noether,ogawa
+> high-moby    up   infinite      3   idle bayes,borg,hawking
+     #+END_SRC
+
+        You'll note that some partitions are listed several times, and
+	some nodes also are listed in several partitions. This is
+	because a) nodes can be shared between two or more partitions,
+	and b) =sinfo= defaults to listing partitions according to the
+	state of their member nodes. In the example above, =cudansha=
+	is listed twice, because one of its nodes is temporarily down,
+	while the others are idle; so, lines three and four tell us,
+	respectively, that one node in cudansha is down, and seven are
+	idle (having no Slurm jobs).
+
+     2) #SBATCH --cpus-per-task=4
+	Means that every copy of this script on any computer will be
+        expected to use this many CPU cores. No machine with less
+        than this many cores will be eligible to run copies of this
+        script. More generally, nodes will be eligible to start
+        running one or more copy of this script at a time iff they
+        have unused CPU cores in multiples of this number.
+
+     3) #SBATCH --export=ALL
+
+        Means that the script will inherit the environment of the
+        calling shell instance. If you have defined special variables,
+        either interactively or programmatically, this option allows
+        you to specify that those environment variables should exist
+        for each copy of the Slurm job as well. This option may also
+        be used to sanitise the environment of the Slurm job, such as
+        via =--export=NONE=, or to provide a comma separated list of
+        specific variables which are to be passed along, such as in
+        =--export=MYVAR,MYLIST,MYSUBS=.
+
+     4) #SBATCH --job-name STUDY_fmriprep
+	Means that Slurm will give the job the exact name provided.
+        This will be visible to you when you run [[Sacct:][sacct]], [[Squeue:][squeue]], or any
+        other Slurm command that shows you lists of jobs.
+
+     5) #SBATCH --output=fmriprep_%j.txt
+	Means that the output file provided by slurm will be named
+        with the specified named ('fmriprep_', in this instance),
+        followed by the numeric Job ID used by slurm for that
+        particular job step.
+
+     6) #SBATCH --time=24:00:00
+	Means that this job will have exactly this much time to
+        complete its run.  Oftentimes Slurm partitions will be
+        configured with finite time limits on their longest running
+        job (as seen above), and those partitions will kill jobs that
+        run over their time limit.
+
+        *Specifying a time limit is very important*, since many Slurm
+        partitions will also be configured with a /default time limit/,
+        which is often very short and intended for quick testing and
+        debugging of scripts. Furthermore, specifying an (ideally)
+        accurate time window for expected completion will aid Slurm 
+        in making all scheduling decisions regarding your jobs and
+        available resources. To be clear: your jobs *will* be treated
+        prejudicially by the Slurm job scheduler if you do not provide
+        meaningful time limits on them; as such, you should /always/
+        try to provide an at least approximately accurate =--time= option.
+
+     The final option, the =--array== option, is particularly important.
+
+**** Fscking arrays, how do they work?:
+     
+     7) =#SBATCH --array=1-899%40
+	[[ArrayTaskThrottle: Yes, yes, I'm getting to it!:][But what about that little thing on the end? The %percent sign?]]
+
+	In much the same way that a bash script may loop over a list
+        of elements, doing some job for each element it finds in the
+        list, a Slurm array tells Slurm /how many copies of your job
+        script it needs to run/ before the job can be considered
+        COMPLETED. But a Slurm array does not in any way tell Slurm
+        /what/ each copy of your script should do. It's very possible
+        for an array of Slurm jobs to do exactly identical things,
+        each duplicating all of the work of the others, which makes
+        sense if the purpose of jobs is to repeatedly apply an
+        identical step or process to some data, or if the purpose is
+        to have /each node/ do something locally on that
+        computer.
+
+        Rather, a Slurm array simply ensures that for this many
+        specified job steps one copy of your script will be run, and
+        each copy of that script will be assigned a unique number,
+        called its SLURM_ARRAY_TASK_ID. If you specify an array 1-500,
+        Slurm will run your script 500 times, and each time it runs a
+        copy of the script, that copy will get a special variable, its
+        SLURM_ARRAY_TASK_ID, with a value anywhere between 1
+        and 500. You may then use this number to lexicate symbols
+        within your script, as in the example:
+
+     #+BEGIN_SRC bash
+#SBATCH --array=1-899%40
+
+sublist="/scratch/userdirectory/STUDY_fmriprep/subjects_part1.txt"
+
+index() {
+   head -n $SLURM_ARRAY_TASK_ID $sublist \
+   | tail -n 1
+}
+     #+END_SRC
+
+     #+BEGIN_SRC bash
+  --participant_label=`index` \
+     #+END_SRC
+
+     In this example, a bash function called =index= is defined at the
+     top level, which uses the unique numerical value /n/ of
+     SLURM_ARRAY_TASK_ID to find the /n/th element the file
+     =subjects_part1.txt=. Because each of the 899 copies of the above
+     script to be run will have a unique /n/ for this variable, each
+     script will find a different /n/th element in that list. As a
+     result, when the singularity container is run in each script,
+     each container will run on a different subject.
+
+***** Nota bene:
+      There is no peculiar reason why this sort of array indication
+      must be done with bash functions. It could as easily have been a
+      "static" variable:
+
+      #+BEGIN_SRC bash
+sublist="/scratch/userdirectory/STUDY_fmriprep/subjects_part1.txt"
+
+indexvar="$(head -n $SLURM_ARRAY_TASK_ID $sublist | tail -n 1)"
+
+--participant_label="$indexvar"
+      #+END_SRC
+
+      Or, appropriately enough, it can be done with a bash array:
+
+      #+BEGIN_SRC bash
+subarray=(`cat
+/scratch/userdirectory/STUDY_fmriprep/subjects_part1.txt`)
+
+--participant_label="${subarray[$SLURM_ARRAY_TASK_ID]}"
+      #+END_SRC
+
+      In this usage, rather than calling a function whenever we want a
+      element identifier, we simply define it statically as a
+      variable, or else place all of our elements into a bash array
+      and use the SLURM_ARRAY_TASK_ID as the index subscript to find
+      that /n/th element within the array. However you choose to do
+      it, it is important to always ensure that the maximum number in
+      your array is not greater than the total number of actually
+      available elements or subjects upon which you wish to perform
+      jobs - if it is, unexpected behaviour will result. In the case
+      of doing it with the function() or the static="variable", Slurm
+      will reach the last subject in the list and rerun the job script
+      on the final subject repeatedly, possibly overwriting previous
+      outputs. In the case of using the bash=(array) filled with
+      elements (subjects, files, etc.), Slurm will get to the end of
+      the bash array and all subsequent jobs will simply fail as the
+      scheduler runs out its remaining indices.
+
+      Since people seem to have a hard time seeing how this works, I
+      suggest taking at least a moment to try simply using the bash
+      syntax discussed here, outside of Slurm, in order to come to
+      understand it better.  Most of you may be primarily familiar
+      with defining bash variables, in which case, use that if it is
+      more comfortable to you. The crucial thing to understand is
+      simply that the SLURM_ARRAY_TASK_ID is just a plain variable
+      holding an unique number somewhere in the range set by the
+      =--array==, and when you run your script, that number can be
+      used in various ways to indicate a data element or subject.
+
+***** An array example:
+
+      Let's do an example script together. In this script, we'll use a
+      static list of names that we'll do something to, simply for
+      illustrative purposes. Here, rather than an =index= function,
+      we'll use a bash array (since this is arguably the best way to
+      do this, though many of you may find it less familiar than bash
+      variables). To be clear, the expectation of running the
+      following script is that any node that runs it will echo the
+      name of that node followed by one of the nine billion names of
+      david ryder:
+
+      #+BEGIN_SRC bash
+#!/bin/bash
+#SBATCH --array=1-39
+#SBATCH --error=/scratch/kwitczak/slurm_nine_billion_%A_%a.out
+#SBATCH --output=/scratch/kwitczak/slurm_nine_billion_%A_%a.out
+
+davidryder=("slabbulkhead"
+"fridgelargemeat"
+"puntspeedchunk"
+"butchdeadlift"
+"boldbigflank"
+"splintchesthair"
+"flintironstag"
+"boltvanderhuge"
+"thickmcrunfast"
+"blasthardcheese"
+"buffdrinklots"
+"trunkslamchest"
+"fistrockbone"
+"stumpbeefknob"
+"smashlampjaw"
+"punchrockgroin"
+"buckplankchest"
+"stumpchunkmen"
+"dirkhardpec"
+"ripsteakface"
+"slateslabrock"
+"crudbonemeal"
+"brickhardmeat"
+"ripslagcheek"
+"punchsideiron"
+"gristlemcthornbody"
+"slatefistcrunch"
+"buffhardback"
+"bobjohnson"
+"blastthickneck"
+"crunchbuttsteak"
+"slabsquatthrust"
+"lumpbeefbroth"
+"touchrustrod"
+"reefblastbody"
+"bigmclargehuge"
+"smokemanmuscle"
+"eatpunchbeef"
+"hackblowfist"
+"rollfizzlebeef")
+
+echo "On $HOSTNAME, davidryder is ${davidryder[$SLURM_ARRAY_TASK_ID]}!"
+      #+END_SRC
+
+      Now, to be confident, we'll make sure that our job ran
+      correctly:
+
+      #+BEGIN_SRC bash
+      $ sbatch theninebillionnames.sh
+
+      > Submitted batch job 138956
+
+      $ sacct
+
+      > JobID    JobName  Partition    Account  AllocCPUS      State ExitCode
+      > ------------ ---------- ---------- ---------- ---------- ---------- --------
+      > 138956_1     theninebi+       moby    tigrlab          1  COMPLETED      0:0
+      > 138956_1.ba+      batch               tigrlab          1  COMPLETED      0:0
+      > 138956_1.ex+     extern               tigrlab          1  COMPLETED      0:0
+      > 138956_2     theninebi+       moby    tigrlab          1  COMPLETED      0:0
+      > 138956_2.ba+      batch               tigrlab          1  COMPLETED      0:0
+      > 138956_2.ex+     extern               tigrlab          1  COMPLETED      0:0
+      > 138956_3     theninebi+       moby    tigrlab          1  COMPLETED      0:0
+      > 138956_3.ba+      batch               tigrlab          1  COMPLETED      0:0
+      > 138956_3.ex+     extern               tigrlab          1  COMPLETED      0:0
+      > 138956_4     theninebi+       moby    tigrlab          1  COMPLETED      0:0
+      > 138956_4.ba+      batch               tigrlab          1  COMPLETED      0:0
+      > 138956_4.ex+     extern               tigrlab          1  COMPLETED      0:0
+      > 138956_5     theninebi+       moby    tigrlab          1  COMPLETED      0:0
+      > 138956_5.ba+      batch               tigrlab          1  COMPLETED      0:0
+      > 138956_5.ex+     extern               tigrlab          1  COMPLETED      0:0
+      > 138956_6     theninebi+       moby    tigrlab          1  COMPLETED      0:0
+      > [...] and so on [...]
+      #+END_SRC
+
+      If we ran =$ sbatch show jobid=138956=, not only would we get a listing
+      for one job; we'd get a listing for each individual job step of the array.
+      In order to see an individual step, we must include the task ID as well,
+      such as =$ sbatch show jobid=138956_16=. So what does the output look
+      like? Well, for one, because the name of the =--error= and =--output= files
+      we specified included =_%A_%a=; we have a unique logfile for each name:
+
+      #+BEGIN_SRC bash
+      $ ls -l /scratch/kwitczak
+
+      > total 160
+      drwx------ 1 kwitczak kimel 276 May 15 17:13 kscratch
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_10.out
+      -rw-r--r-- 1 kwitczak kimel  20 Jul  3 19:11 slurm_nine_billion_138956_11.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_12.out
+      -rw-r--r-- 1 kwitczak kimel  19 Jul  3 19:11 slurm_nine_billion_138956_13.out
+      -rw-r--r-- 1 kwitczak kimel  20 Jul  3 19:11 slurm_nine_billion_138956_14.out
+      -rw-r--r-- 1 kwitczak kimel  19 Jul  3 19:11 slurm_nine_billion_138956_15.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_16.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_17.out
+      -rw-r--r-- 1 kwitczak kimel  20 Jul  3 19:11 slurm_nine_billion_138956_18.out
+      -rw-r--r-- 1 kwitczak kimel  18 Jul  3 19:11 slurm_nine_billion_138956_19.out
+      -rw-r--r-- 1 kwitczak kimel  19 Jul  3 19:11 slurm_nine_billion_138956_1.out
+      -rw-r--r-- 1 kwitczak kimel  19 Jul  3 19:11 slurm_nine_billion_138956_20.out
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_21.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_22.out
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_23.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_24.out
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_25.out
+      -rw-r--r-- 1 kwitczak kimel  27 Jul  3 19:11 slurm_nine_billion_138956_26.out
+      -rw-r--r-- 1 kwitczak kimel  24 Jul  3 19:11 slurm_nine_billion_138956_27.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_28.out
+      -rw-r--r-- 1 kwitczak kimel  19 Jul  3 19:11 slurm_nine_billion_138956_29.out
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_2.out
+      -rw-r--r-- 1 kwitczak kimel  23 Jul  3 19:11 slurm_nine_billion_138956_30.out
+      -rw-r--r-- 1 kwitczak kimel  24 Jul  3 19:11 slurm_nine_billion_138956_31.out
+      -rw-r--r-- 1 kwitczak kimel  24 Jul  3 19:11 slurm_nine_billion_138956_32.out
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_33.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_34.out
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_35.out
+      -rw-r--r-- 1 kwitczak kimel  23 Jul  3 19:11 slurm_nine_billion_138956_36.out
+      -rw-r--r-- 1 kwitczak kimel  23 Jul  3 19:11 slurm_nine_billion_138956_37.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_38.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_39.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_3.out
+      -rw-r--r-- 1 kwitczak kimel  20 Jul  3 19:11 slurm_nine_billion_138956_4.out
+      -rw-r--r-- 1 kwitczak kimel  19 Jul  3 19:11 slurm_nine_billion_138956_5.out
+      -rw-r--r-- 1 kwitczak kimel  22 Jul  3 19:11 slurm_nine_billion_138956_6.out
+      -rw-r--r-- 1 kwitczak kimel  20 Jul  3 19:11 slurm_nine_billion_138956_7.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_8.out
+      -rw-r--r-- 1 kwitczak kimel  21 Jul  3 19:11 slurm_nine_billion_138956_9.out
+      #+END_SRC
+
+      And inside these logs we find:
+
+      #+BEGIN_SRC bash
+      $ cat /scratch/kwitczak/slurm_*
+      > On ogawa, davidryder is buffdrinklots!
+      > On ogawa, davidryder is trunkslamchest!
+      > On ogawa, davidryder is fistrockbone!
+      > On ogawa, davidryder is stumpbeefknob!
+      > On ogawa, davidryder is smashlampjaw!
+      > On ogawa, davidryder is punchrockgroin!
+      > On ogawa, davidryder is buckplankchest!
+      > On ogawa, davidryder is stumpchunkmen!
+      > On ogawa, davidryder is dirkhardpec!
+      > On ogawa, davidryder is ripsteakface!
+      > On ogawa, davidryder is fridgelargemeat!
+      > On ogawa, davidryder is slateslabrock!
+      > On deckard, davidryder is crudbonemeal!
+      > On deckard, davidryder is brickhardmeat!
+      > On deckard, davidryder is ripslagcheek!
+      > On deckard, davidryder is punchsideiron!
+      > On deckard, davidryder is gristlemcthornbody!
+      > On deckard, davidryder is slatefistcrunch!
+      > On deckard, davidryder is buffhardback!
+      > On deckard, davidryder is bobjohnson!
+      > On deckard, davidryder is blastthickneck!
+      > On ogawa, davidryder is puntspeedchunk!
+      > On deckard, davidryder is crunchbuttsteak!
+      > On deckard, davidryder is slabsquatthrust!
+      > On deckard, davidryder is lumpbeefbroth!
+      > On deckard, davidryder is touchrustrod!
+      > On deckard, davidryder is reefblastbody!
+      > On deckard, davidryder is bigmclargehuge!
+      > On deckard, davidryder is smokemanmuscle!
+      > On deckard, davidryder is eatpunchbeef!
+      > On deckard, davidryder is hackblowfist!
+      > On deckard, davidryder is rollfizzlebeef!
+      > On ogawa, davidryder is butchdeadlift!
+      > On ogawa, davidryder is boldbigflank!
+      > On ogawa, davidryder is splintchesthair!
+      > On ogawa, davidryder is flintironstag!
+      > On ogawa, davidryder is boltvanderhuge!
+      > On ogawa, davidryder is thickmcrunfast!
+      > On ogawa, davidryder is blasthardcheese!
+      #+END_SRC
+
+      Notice, also, that in this example, every job ended up on one of
+      deckard, downie, and ogawa, even though we didn't specify a
+      partition. This is simply because these machines are the largest
+      in the lab, and our configuration is such that because nobody
+      uses them as workstations, they will always prefer to accept
+      jobs first. Not every Slurm cluster will have such a configuration.
+
+      Play around with a script like the above, test different ways of
+      using the SLURM_ARRAY_TASK_ID variable to pull individual
+      items out of a list. Once you find a way to reliably do it with
+      simple scripts, you'll be able to reliably do it with any script.
+
+****** ArrayTaskThrottle: Yes, yes, I'm getting to it!:
+
+       The little %percent sign in =#SBATCH --array=1-899%40= is the
+       Array Task Throttle. If you have a very large number of
+       elements/subjects/files to run Slurm jobs on, you may add a
+       percent sign after the range, and the number following the
+       percent indicates a /maximum simultaneous job count/. You may
+       have 6,000 jobs to run, but =#SBATCH --array=1-6000%20=
+       ensures that only 20 jobs will run at once; when Slurm has
+       started the 20th job, the 21st job will wait until any of the
+       current jobs have finished in order to get started, /even if
+       resources are currently available for the 21st job to begin/.
+       Without the Array Task Throttle, Slurm assumes your job wants
+       to go as fast as possible, and will try to max out all
+       available resources by starting new running new jobs
+       everywhere they can be run. In certain circumstances, where
+       resources are expensive (such as on SciNet), Array Task
+       Throttles may be very important, since they ensure expensive
+       computing resources are equitably shared.
+
+***** A word on loops:
+      It seems to be a commonly held belief among new Slurm users
+      that the way to write a Slurm job is to write a script which
+      runs a for-loop or similar over a bunch of data, and that Slurm
+      will appropriately split the work of the loop over many
+      machines.
+      
+      /This is incorrect./
+
+      When you write an sbatch submission script in order to
+      Slurmeate some workload, instead of writing it as though you
+      want the whole job to be performed on a single computer
+      serially (as with a loop), write it as though you want /only
+      one single data element or subject/ to be worked on by your
+      script, and use the SLURM_ARRAY_TASK_ID numeric variable to
+      pick which single data element to process.
+
+      An alternative way to think of it is to consider what would
+      happen if you wrote a script, and then ran that script by hand
+      on every single computer in the lab. If that script contains a
+      loop which processes every subject in a dataset and writes the
+      output into a commonly available location such as your scratch
+      or projects directory, the result will be that /every single
+      computer will process the whole dataset/, duplicating the work
+      of each other computer and in the doing so possibly overwriting
+      each other's outputs, too.
+
+      Although it very well may be the case that a correctly written
+      Slurm sbatch script uses a for-loop internally, the key to
+      writing a correct script is to understand that your script
+      should only handle a single piece of data. You should consider
+      how your dataset can be effectively divided up into elements,
+      each of which require identical processing to be performed. If
+      you have 600 subjects and the same analysis must be performed on
+      each subject, use an option like #SBATCH --array=1-600.
+      
+      When you do, Slurm will run your script 600 times, spreading it
+      to different machines as resources permit, specifiable via
+      various #SBATCH options such as =--partition==, =--nodelist==,
+      and =--cpus-per-task==. If your script has been written to use
+      the SLURM_ARRAY_TASK_ID number to pick a single unique subject
+      to work on, then each time one of those 600 copies of the script
+      will run on a unique subject and no work will be duplicated.
+
+**** Allocating resouces:
+
+
+
+*** Command basics:
+
+ The three commands we'll start with are the ones to like, do junk and
+ get stuff done, or whatever. These commands are [[Srun:][srun]], [[Salloc:][salloc]], and
+ [[Sbatch:][sbatch]]. Sbatch is the command you'll be using most frequently.  It's
+ the equivalent of qbatch or qsub on our old queue. It submits
+ multiples of jobs that will run in the background. Srun is a bit
+ different, in that it /only runs one job/, and does it in the
+ foreground. This makes it useful for testing, but not for jobbing.
+ Salloc is a bit more subtle, and we'll get into the differences
+ later. For now...
+
+**** Srun:
+
+ [[https://slurm.schedmd.com/srun.html][Srun]] is about as basic as it gets. You use srun in the same way that
+ you use sudo, env, or bash at the command line - which is to say,
+ it's like an interpreter. You type its name followed by the name of
+ the /thing/ you want it to do for you, and it does that job, executes
+ that command, or runs that script.
+
+ =$ srun hostname -f= => mansfield.camhres.ca=
+
+ =$ srun echo "Hello, world!"= => Hello, world!=
+
+ When you type these srun commands, you're not actually asking for
+ them to be run right here, right now, on your computer, though it
+ kind of /seems/ like that's what's happening. Rather, you're asking
+ Slurm to run them somewhere, at some point, on one of the computers
+ in the lab, and in order to make them work. You can provide more
+ information to specify /where/ you want these jobs to run by
+ specifying the [[Partition:][partition]] and the [[=-w, --nodelist=<nodes>=][node list]] you want to send the jobs
+ to.
+
+ =$ srun -p cudansha echo "Now you're thinking with portals."= => Now
+ you're thinking with portals.=
+
+ The [[=-p, --partition=<partition>=][-p option]] tells Slurm you want to use a certain [[Partition:][--partition]].  A
+ partition is like the queue you submit to. Currently we have only a
+ 'debug' partition, which consists of every machine in the lab and
+ will persist until we settle on a sensible way for us to organise the
+ lab's resources. You /must always/ specify the partition, either on
+ the command line of Slurm command you are running, or in the [[Sbatch][Slurm
+ script]] itself. Not doing so is an error for the simple reason that
+ resources in the lab are organised into the partitions, and not
+ specifying which partition to use implies that none are to be used,
+ and your job can have no resources. The options provided to srun (and
+ other Slurm commands) are, in fact, directives to Slurm, telling it
+ the who, what, where, when, and how. So:
+
+ =$ srun -p debug -A tigrlab -c 1 -n 2 dothejob.py= => [some
+ script-specific output from dothejob.py]=
+
+ In this example, we should understand the command line to be saying
+ that the script =dothejob.py= will run on the debug partition, its
+ resource usage will be "billed" to the tigrlab account (the lab-wide
+ account everyone is part of by default), it will take 1 core to run
+ the script, and two copies of the script should be run in
+ parallel. Slurm will then find two cores /somewhere/ on the debug
+ partition and allocate those cores to the tigrlab account under your
+ [[Username:][username]].
+
+ More correctly, then, srun and its ilk are interpreter /wrappers/. In
+ particular, srun takes the name of a command or script you want to
+ run, accepts a [[Some standard srun options include:][series of options for Slurm]], and submits it as a job
+ to the Slurm queue. Effectively what this does is it separates the
+ function of determining the requirements and behaviour of /your job/
+ from that of determining the requirements and behaviour /of Slurm/
+ which allocates your job across the [[Cluster:][network]]. Srun only submits a unix
+ command or script to Slurm and does nothing else. In the background,
+ srun calls [[Salloc:][salloc]] to create the [[Allocation:][allocation]] for the job, and yields
+ control flow to the calling shell. What does this mean? It means that
+ when you run a Slurm job with srun, you have to *wait for the job to
+ finish*.
+
+ So when /should't/ you use srun? *When you need to keep using the
+ command line you ran it from.* Specifically, srun runs in the
+ /foreground/, as said, so if you run a job with srun, you will lose
+ your command line while Bash prints the standard I/O streams. If you
+ don't want your command line to immediately fill up with the output
+ of your script or program as in the examples, *don't use srun*! For
+ cases where you submit a job fire-and-forget style, you'll want to
+ use [[Sbatch:][sbatch]] instead of srun. There are [[Other, more subtle consequences:][other, more subtle consequences]]
+ of this that we'll cover we talk about sbatch, as well.
+
+ So when /should/ you use srun? When you have a small job that will
+ finish quickly, or in cases where you want to test a job (on, say, a
+ single subject only) before running a larger version of it with
+ [[Sbatch:][sbatch]]. Because srun causes the calling Bash to block on I/O, it's
+ useful for testing a job to see in real time what output that job
+ will provide (and maybe find out where it's failing, if it fails);
+ but don't use it for huge jobs or anywhere you don't want to wait for
+ the job to finish in real time.
+
+***** An illustrative example of how srun works:
+/Note the use of backslash to show line-breakage, like in a script:/
+
+  =$ srun -p debug -c 2 \= =nproc= => 2=
+
+  Notice, again, the /separation/ of concerns where I put in the
+  line-break. Srun comes first, and its arguments tell Slurm where and
+  how, followed by "nproc" which is an ordinary Bash command which
+  returns the number of logical processors available to it.  The [[=-p, --partition=<partition>=][-p
+  option]] specifies the [[Partition:][partition]] (Slurm's word for a queue); and the [[=-n,
+   --ntasks=][-n option]], which specifies how many tasks should try to run
+  simultaneously. You'll notice that in this example, the output line
+  indicates the result of nproc is two. No computer in the lab has
+  fewer than four cores, and as a result this illustrates that Slurm
+  has adequately constrained the resources allocated to the task
+  nproc. A series of examples illustrates this further:
+
+  =$ srun -p debug -c 2 hostname -s= => mrsdti=
+
+  =$ srun -p debug -c 4 hostname -s= => mansfield=
+
+  =$ srun -p debug -c 16 hostname -s= => ogawa=
+
+  In these subsequent usages, the output for the hostname command was
+  different each time. This is because machines in this lab, with the
+  exception of dedicated compute nodes such as deckard, downie, ogawa,
+  and hopper, are configured to render at most half of their cores for
+  use in Slurm jobs. As the number of requested cores rises, Slurm
+  schedules jobs to run on progressively stronger machines.  Be aware,
+  though, that requesting a number of cores which exceeds the number
+  of cores available /on any one machine/ can be tricky.  For a job
+  like uptime or hostname, it will cause the job to fail as a result
+  of the fact that these commands is not parallelisable. Jobs with
+  multiple [[Jobstep:][jobsteps]] can be split into many tasks with the [[=-n, --ntasks=][-n option]],
+  and these jobs may be allocated more cores than exist on any one
+  machine, because the job is divisible into several parts which may
+  run indepdendently.
+
+
+**** Salloc:
+
+ The salloc command creates the [[Allocation:][allocation]] for a Slurm job to use.
+ Its purpose is to request some set of cluster-available, partitioned
+ resources for use in your job. Its options are the same as srun's and
+ sbatch's, as these programs are designed to work hand-in-hand.  Where
+ srun executes a command, in a sense, 'here-and-now', salloc is run in
+ the background and requests the desired resources /for/ that command
+ to run. However, salloc /can/ be run in the foreground exactly as
+ srun can be, and in fact it works in the exact same way, accepting
+ all of the same options.
+
+    =$ salloc -p hostname; uptime= => salloc: Granted job allocation
+    10655= => mansfield.camhres.ca= => salloc: Relinquishing job
+    allocation 10655= => salloc: Job allocation 10655 bas been
+    revoked.= => 13:11:03 up 7 days, 22:19, 6 users, load average:
+    7.65, 5.16, 3.50=
+
+ In this case, the output was many lines. This is because the primary
+ purpose of salloc is to
+  
+
+****** Some standard Slurm options include:
+******* =-A, --account=<account>=
+	Slurm will bill the specified job to the [[Account:][account]] indicated
+	here.
+
+******* =-c, --cpus-per-task=
+	Slurm uses this option to allocate numbers of processors
+	across nodes. Jobs which demand more processors may have a
+	restricted range of nodes and partition geometry, because our
+	cluster is highly heterogeneous, which is to say, all of our
+	machines are substantially different from one another in terms
+	of the sort of resources they have. Requesting large numbers
+	of cpus per task can might restrict your job to run only on
+	the largest machines in the lab. The default is always one
+	core.
+
+******* =-n, --ntasks=
+	The number of tasks slurm should try to run simultaneously, if
+	more than one task is part of your job submission. For the
+	purposes of scheduling, a task if anything slurm might attempt
+	to do which has a definite beginning and ending and can run
+	independently of other tasks. In particular, tasks are often
+	coterminous with [[Jobstep:][jobsteps]], or at least, should be treated as
+	such by you as you write your scripts, as this gives you a
+	better sense of how your job's execution will carry off.  A
+	job submitted as a script with lots and lots of different
+	components will run entirely serially unless you provide for
+	additional --ntasks. The default is always one task.
+
+******* =--bb=<spec>=
+	Use this option to tell srun about the burst buffer available
+	for your job. Mostly relevant for SciNet.
+
+******* =--bcast=<file>=
+	If your job depends on some file or directory being present
+	wherever the job is run, this lets you broadcast that
+	file/directory to ensure it exists on every node running your
+	job. Good if you don't want to put up with the slow-down of
+	having your job read/write over the network to your scratch or
+	projects folder.
+******** Use the --bcast option with the =--compress=<type>= option
+	 This lets you gzip your file/dir before sending, or use other
+	 compressors like xz if you want.
+       
+******* =--begin=<time>=
+	Lets you specify a desired start time for your job. This
+	option is actually reasonably flexible, and allows options
+	such as =--begin=now+6hours= for six hours from submission, or
+	=--begin=6PM=, as well as full date+times like
+	=--begin=2019-01-02T13:00=.
+******** Use the --begin option with the =--deadline=<time>= option
+	 Deadline lets you specify some date+time combo or some
+	 relative offset by which you expect your job to have
+	 finished. If your job does not finish before the deadline,
+	 Slurm will gracefully terminate it, allowing you to get
+	 /most/ of a job done correctly even if it exceeds its time
+	 allocation. Graceful termination in this context means that
+	 once past the deadline, Slurm will stop scheduling new
+	 [[Jobstep:][jobsteps]], e.g. new subjects/files will not be scheduled for
+	 processing, but any currently running subjects/files will
+	 finish up. If your job is legit hung, eventually Slurm will
+	 kill any remaining jobsteps that fail to exit out on their
+	 own time, i.e. this provides a grace period.
+
+******* =-d, --dependency=<list>=
+	Dependency is an extremely powerful but somewhat
+	fiddly-to-get-working option which lets you specify that your
+	job must only run when some other scheduling condition has
+	been satisfied. The most basic use case for this is to provide
+	a directive that some job in your job script should only run
+	after some other job or jobs have completed. This is useful
+	when you want much of your script to run in parallel
+	(i.e. qbatch-style) but some parts of the script can only
+	start when other parts are already finished. There are
+	actually a huge number of different ways of doing
+	dependencies, so here we'll look at a few examples: =srun -d
+	after:<jobid> <myjob>= - <myjob> can begin only after <jobid>
+	has started.  =srun -d afterany:<jobid> <myjob>= - <myjob> can
+	begin only after any/all parts of <jobid> have completed.
+	=srun -d afterok:<jobid> <myjob>= - <myjob> can begin only
+	after <jobid> has succeeded, i.e. *not if <jobid> failed.*
+	=srun -d afternotok:<jobid> <myjob>= - <myjob> can begin only
+	after <jobid> has failed, i.e. *not if <jobid> succeded.* This
+	is useful to have jobsteps that correct failures of other
+	jobsteps (e.g. maybe <jobid> fails on <somesubject>, so a new
+	jobstep is launched to flag <somesubject> as needing
+	attention).  There are more possibilities, but we'll stop
+	here.  For more, check([[https://slurm.schedmd.com/job_exit_code.html][1]]) the docs([[https://slurm.schedmd.com/job_array.html][2]]), fools!
+
+******* =-o, --output=<path>=
+	This option allows you to specify where all the standard
+	output from your job will go.  If not specified, stdout goes
+	to job files in the current working directory where srun was
+	called from, along with [[=-e, --error=<path>=][stderr]].
+
+******* =-e, --error=<path>=
+	This option allows you to specify where all the standard error
+	from your job will go.  If not specified, stderr goes to job
+	files in the current working directory where srun was called
+	from, along with [[=-o, --output=<path>=][stdout]].
+
+******* =--export=<ENVVARS>=
+	Allows you to forward environment variables of your choosing
+	to the jobs you are starting with srun. By default, =ALL=
+	environment variables get passed forward.  You can also pass
+	=NONE=, implying that your job will be run with an empty
+	environ- ment, a bit fiddly but it could be useful; otherwise
+	this takes a comma-list of environment variables; you can also
+	pass forward, say, =ALL= current variables and add some
+	extras, via =--export=ALL,MYNEWVAR,MYOTHERVAR=. Useful if you
+	want to get hacky about what your programs believe to be true
+	about their environment.
+
+******* =-H, --hold=
+	Lets you submit a job with priotity=0, meaning it will never
+	be scheduled to run; Slurm will just hold onto the job
+	specification and do nothing with it but wait.  You can later
+	use [[Scontrol:][scontrol]] to release the job hold with =scontrol release
+	<jobid>=, allowing it to be run at a time of your choosing,
+	such as later in the afternoon when [everybody goes
+	home/somebody's big job is done/you dang ol' feel like it].
+	You can also, of course, correspondingly =scontrol hold
+	<jobid>=, as well.  [[Scontrol:][But later...]]
+********* Nota bene(hold):
+	  While Slurm is waiting on a priority=0 held job, that job
+	  /will not/ affect Slurm's other scheduling calculations, so
+	  huge jobs (or huge numbers of any-sized jobs) waiting on an
+	  indefinite hold won't throw off Slurm's real-time priority
+	  rescheduling algorithm.
+******** Use the --hold option in contrast to the =I, --immediate=<seconds>= option
+	 Immediate lets you submit a job which will automatically fail
+	 out if resources don't become available for it within
+	 <seconds> seconds. Normally, a job submitted when resources
+	 aren't available will get scheduled to the back of the queue
+	 and wait its turn. Using, say, =srun -I120 <myjob>= (*yes
+	 there is no space here*), will result in <myjob> cancelling
+	 itself if it doesn't get the resources to start running in
+	 two minutes.
+
+******* =-J, --job-name=<string>=
+	Use this option to name your jobs. By default jobs are given
+	systematic indices based on the order in which you personally
+	submitted them (their job-id). If you get tired of submitting
+	jobs and having to remember whether they got labelled with
+	job-id 136847 or 1136478, give it a name and this will make it
+	easier to lexicate with other Slurm commands.
+******** Use the --job-name option in tandem with the =--jobid=<int>= option
+	 This option just lets you specify the numerical job-id that
+	 your Slurm job will use. Ordinarily it is simply given the
+	 next number in order after all the other numbers taken
+	 previously by Slurm jobs submitted by you.
+
+******* =-K, --kill-on-bad-exit=<0|1>=
+	When part of a job (a [[Jobstep:][jobstep]]) exits with a non-success (exit
+	code other than zero), as in a crash or failure or something
+	else, if this option is set with either =srun -K= or =srun
+	--kill-on-bad-exit=1=, Slurm will use all its powers of
+	murdering to kill the offending program. Useful for situations
+	in which you know part of a job /might/ fail but still keep
+	going and going, like a zombie energizer bunny, or even hang
+	at some point. This lets you cleanly assassinate suspected
+	probable troublemakers in your pipeline, rather than letting
+	them fail blindly into the bitbucket and potentially hang your
+	whole job. Combound with other options such as the [[=-d,
+ 	--dependency=<list>=][--dependency]] option, you can have a complex job script which
+	situationally kills probable failure and subsequently initiate
+	steps to clean up or even attempt to recover afterwards from
+	local points of failure.
+
+******* =-m, --distribution=<[options:options]>=
+	Allows you to specify how Slurm should /attempt/ to distribute
+	your job across the [[=-p, --partition=<partition>=][-p <partition>]] you have specified. Though
+	a lot of this is fairly nitty-gritty, you can choose options
+	like *block*, *cyclic*, *,Pack*, and *,NoPack*, to specify
+	that you want Slurm to attempt to assign resources in specific
+	ways. Block assignment means that Slurm will attempt to get
+	lots of resources on one [[Node:][node]], versus spreading the job out
+	across several, while cyclic is the reverse, trying to
+	subscribe few resources on each node, round robin style, and
+	only assigning more when no idle nodes are available. More
+	complex distributions are possible, which we won't get into in
+	this primer.  See the [[https://slurm.schedmd.com/mc_support.html][task distribution]] page in the official
+	Slurm docs.
+
+******* =--mem=<numberof[units]>=
+	Lets you specify how much memory in some optional units
+	(Gigabytes by default) your job expects to use per node. If
+	your job exceeds its memory assigned limitations, Slurm will
+	allow it to proceed but will constrain it from carrying out
+	any tasks (forking children, etc.)  which will require new
+	memory allocations. A global slurm variable can be set which
+	causes Slurm to kill memory hogs, but we have unset it for the
+	time being.
+******** Optionally use the =--mem-per-cpu=<numberof[units]>= option
+	 This option is the same as the --mem option, but instead
+	 specifies the number of (by default Gigabytes) units of
+	 memory your job is expected to require /per cpu core/ your
+	 job uses. This option is mostly useful if you have some
+	 number of jobs, as in a [[Job Array:][job array]] where the memory
+	 requirements of each are known in advance to be nearly the
+	 same, and which are [[https://en.wikipedia.org/wiki/Embarrassingly_parallel][embarrassingly parallel]].
+
+******* =-p, --partition=<partition>=
+	This specifies which [[Partition:][partition]] to assign your job to. When
+	using the -p option with any commands, [[Node:][nodes]] and physical
+	resources like processors and memory will only be assigned
+	from the machines in that partition.  Currently there's only
+	one partition, but in the future we will have several divided
+	based on the strength of the machines assigned to them.
+
+** Some basic concepts:
+
+ In general, the way that Slurm job submissions work is that you, as a
+ Slurm user, place a request for an /[[Allocation:][allocation]]/ for your /[[Job:][job]]/ spread
+ across some /[[Node:][nodes]]/ billed to your /[[Account:][account]]/ under your /[[User:][username]]/ on
+ a /[[Partition:][partition]]/ in our /[[Cluster:][cluster]]/:
+
+*** User:
+ This is exactly what it sounds like.  You'll almost never have to
+ remember to type your username because just submitting jobs from the
+ command line implicitly provides your username to those jobs (i.e.
+ your login username will always be your slurm username).
+
+*** Account:
+ Somewhat unintuitively, accounts are groups of users rather than
+ individual users. Think of an account as a billing account: users are
+ assigned to accounts (such as, for example: Assistants, Analysts,
+ Students, Scientists, &c.), and these accounts determine how Slurm
+ allocates allocates resources to users. Users may be part of more
+ than one account, and may have a Default Account, which simply
+ determines which account is billed if the user specifies no account
+ on the command line or in their job script with the -A
+ option. Presently we have only one lab-wide account, the tigrlab
+ account, but we should have more in the future. Therefore, any use of
+ the -A option with any account name other than tigrlab is an error
+ and will result in a failed job submission.
+
+*** Node:
+ A node is, for our purposes, a physical machine of the sort we use in
+ the lab.  To be slightly wonky, a node is an network addressable
+ qualified hostname.  As such, nodes can also (theoretically) be
+ virtual machines or containers, but usually this will not be the case
+ for us. For present purposes a node is any one of the 28 machines
+ available in the lab. Sit down and type at it or ssh into it, it's a
+ node.
+
+*** Cluster:
+ A cluster is a group of machines ([[Nodes:][nodes]]) managed centrally by
+ Slurm. An array of compute nodes may be divided into more than one
+ cluster if it is extremely large, but ours is not large enough to
+ split. Our cluster is tigrslurm. A cluster is managed by a single
+ instance of the Slurm Controller Daemon ([[SlurmCtld:][SlurmCtld]]). You should never
+ have to remember this, as we have only one cluster and thus your
+ /[[Partition:][partition]]/ request (the -p flag) will always be sufficient to
+ lexicate the corresponding cluster.
+
+*** Partition:
+ A partition is a subset of nodes divided across some clusters. You
+ can think of a partition as a queue. Under SGE, our lab had only a
+ single queue, called /main.q/, and currently our tigrslurm cluster
+ has only one partition, the /debug/ partition, which we will use for
+ testing purposes. In the future, we will be dividing our cluster into
+ several partitions, probably depending on the size of the machines in
+ them, e.g. deckard, downie, and ogawa in a /heavy/ partition, golgi,
+ hebb, and laplace in a /light/ partition, and so on, allowing us to
+ more granularly allocate the use of specific machines for
+ appropriately sized jobs.
+
+*** Allocation:
+ An allocation is some set of resources associated with some partition
+ and some job, which are to be set aside for that job and 'billed' to
+ an account. The easy way to explain is with an example:
+
+ In the debug partition there are some machines. A user requests a job
+ to use 8 cores on the debug partition. Slurm will find eight cores
+ that are unused across the debug partition, and /allocate/ those
+ cores to the user's job.  Those eight cores may be on one unused node
+ or they may, possibly, be spread across several nodes each of which
+ have have a few unused cores. Those eight, set-aside cores are the
+ allocation.
+
+ If the job ends up needing more than those eight cores, it will
+ simply die as a result of Slurm's resource constraints, or just go
+ slowly. No job may ever exceed its allocation under any
+ circumstances; so it is important to request allocation of adequate
+ resources for your job with the -c and the -n flags when writing your
+ job script. If this still doesn't fully make sense, think of a
+ workstation machine as an example: it has a certain number of cores,
+ a certain amount of memory, and so on. A Slurm allocation is simply a
+ finite count of cores, memory, and other resources available set
+ aside for work, and spread accross multiple machines rather than
+ physically located on a single machine.
+
+*** Job:
+ A script or a program to be executed by Slurm on behalf of a [[User:][user]]
+ within an [[Allocation:][allocation]] requested by that user on their [[Account:][account]]. A job
+ will be allocated some set of expected resource requirements, such as
+ cores, some expected task count, and some estimated time to
+ completion. In practice, a job will often be a script of some kind,
+ with a number of allocated tasks (the -n option) describing how many
+ processes Slurm is expected to allocate resources for simultaneously,
+ a number of cores (the -c option) describing how many processors
+ should be allocated per task (this should be one core per task for
+ singlethreaded applications and possibly more for multithreaded
+ applications). Jobs are divisible into jobsteps.
+
+**** Jobstep:
+ Jobsteps are, effectivly, individual job components. If a job is a
+ script, a jobstep is some part of that script which can be handled
+ atomically: it has a well-defined starting point, a well-defined
+ series of inputs and outputs, and a well-defined termination point.
+ In a Bash script, for instance, a jobstep could be any single program
+ called by the shell anywhere in script. More specifically, when a job
+ is submitted to Slurm, [[Slurmd:][Slurmd]] accepts the job, reads through the job
+ script, finds instances of slurm commands such as [[Srun:][srun]],
+ [[Salloc:][salloc]], and so on, and treats them as individual
+ jobsteps. Defining jobsteps in a script is important because it
+ allows Slurm to schedule your job sensibly. A job with jobsteps can
+ be paused, restarted, failed or broken steps can be rescheduled, and
+ so on. A job with no jobsteps must be run as a single continuous
+ 'chunk' irrespective, from beginning to end.  A step-less Slurm job
+ which fails must start again from the beginning and will /typically/
+ be scheduled to the back of the queue (i.e., be scheduled to run
+ last) if the queue is very busy, as Slurm preferentially tries to run
+ small, short, and discrete jobs first if they don't obviously depend
+ on any other jobs, simply to get them out of the way. This also,
+ incidentally, depends on jobs and jobsteps being submitted with
+ estimated completion times.
+
+** The structure of Slurm:
+
+ Slurm has several components. This section is almost certainly not
+ needed for you to understand how to use Slurm, but it may somewhat
+ demystify its operation. A Slurm [[Cluster:][cluster]] is controlled centralled by
+ a /[[SlurmCtld:][Slurm Controller Daemon]]/, which operates apart from the queue
+ compute nodes. The compute nodes are individually governed by a
+ /[[Slurmd:][Slurm Daemon]]/. Slurmd in turn is responsible for [[SlurmStepd:][SlurmStepd]], which
+ atomically handles [[Jobstep:][jobsteps]] on behalf of Slurmd.  In our cluster, on
+ the same machine as SlurmCtld, there is also a /[[SlurmDBD:][Slurm Database
+ Daemon]]/, a system which handles all of Slurm's data.  Finally, there
+ is [[Munged:][Munged]], a program that allows all these parts to communicate
+ securely.
+
+*** SlurmCtld:
+ SlurmCtld is the controller daemon for the whole cluster. Only one is
+ necessary, and it is directly responsible for all scheduling
+ operations.  When you type commands such as [[Srun:][srun]] or [[Sbatch:][sbatch]] at the
+ command line, these commands use [[Munged:][Munged]] to communicate directly with
+ SlurmCtld, and if some immediate feedback is required (such as during
+ a job scheduling failure) SlurmCtld in turn issues this feedback
+ directly to you through its Munged.  As such, [[At%20the%20command%20line:][slurm commands]] wait for
+ and depend on SlurmCtld to respond. If a command carries some
+ perceivable delay, it may be because of problems in communicating
+ with SlurmCtld. There may also be a backup SlurmCtld, which takes
+ over scheduling operation in case the primary copy fails a periodic
+ status update assignment. Our cluster has no backup controller.
+
+*** SlurmDBD:
+ The Slurm Database Daemon is a crucial piece of Slurm apparatus
+
+*** Slurmd:
+
+*** SlurmStepd:
+
+*** Munged:
+
+* Footnotes
+
+[fn:1] (M-x hat-tip to Hajer Nakua for letting me demo a variant of
+her SciNet job script here)

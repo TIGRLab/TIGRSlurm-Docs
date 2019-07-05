@@ -1,0 +1,14 @@
+* Slurm Commands
+** sattach
+** sbatch
+** sbcast
+** scancel
+** scontrol
+** sinfo
+** sprio
+** squeue
+** sreport
+** srun
+** sshare
+** sstat
+** strigger

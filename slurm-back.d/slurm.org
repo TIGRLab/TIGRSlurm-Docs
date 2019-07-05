@@ -1,0 +1,921 @@
+* Legend:
+log=number of processors (logical)
+soc=number of sockets in use
+cps=cores per socket (physical)
+tpc=threads per core (hyperthreaded)
+** Conf value type legend:
+*** ~Int:~ An integer value:
+Examples: 0, 5, 12
+*** ~Float:~ A floating point numeric value:
+Examples: 0.0, 4.2, 69.696969
+*** ~Bool:~ A boolean value expressing alternatives:
+Examples: True, No, False, Yes, 0, 1
+*** ~String:~ A string of ASCII characters:
+Examples: a string of ASCII characters
+*** ~Record:~ A sequence of comma separated untyped keyword elements
+Examples: JobPriority,Flame,Dog,LiquidHotMAGMA
+*** ~Case String:~ A case sensitive string of ASCII characters:
+Examples: /home/kwitczak/Downloads
+*** ~Tuple:~ A finite sequence of comma separated mutually corresponding elements:
+Examples: JobFrequency=20,CheckupFrequency=10,IsAwesome=True
+
+* "The Queue"
+ Queues, or, in Slurm parlance, Partitions, are collections of compute
+ nodes running the Slurm Daemon (Slurmd) and addressable for resource
+ and/or job allocation. To be Slurminologically precise, a "Queue" is
+ a peculiarly curated job schedule /associated with a Parition/.  The
+ partition is the collection nodes, and the queue is the schedule of
+ jobs for that peculiar collection of nodes (and not any other).
+
+ Partitions may (and, in our case, do) overlap, and may have
+ individualised configurations and rulesets associated with their
+ use. Theoretically, nodes may physically overlap as well, if one
+ physical machine hosts several Slurmds, but mostly this is useful for
+ diagnostic purposes; I used it to test virtualised queues on
+ mansfield before I rolled Slurm out to the lab. Slurm provides
+ well-defined semantics for configuration inheritance between
+ partitions, clusters, and nodes, based on linewise associativity and
+ ordering within the slurm.conf file.  Generally, configurations
+ defined for the entire Cluster may appear anywhere in the file, other
+ than on the same line where a partition or node is first defined by
+ name. Partitions inherit all applicable cluster-wide configurations,
+ excepting when a configuration or constraint is /also defined on the
+ same line as the partition's name/. Partition-specific configurations
+ in conflict with cluster-generic configurations are partition
+ specific /exceptions/ rather than collisions. Isomorphic semantics
+ apply between individual Nodes and Partitions: nodes defined as part
+ of a partition (on the same line as that partition's name) inherit
+ applicable partition configuration options, including those
+ transitively inherited from the cluster, but an exceptional
+ node-specific configuration is defined when an option is multiply
+ defined on the same line as a node's name and elsewhere in the file.
+
+ As mentioned, there is also a higher level of organisation than the
+ partition: Clusters. All of our lab is the same cluster, "tigrslurm".
+ Precisely, a Cluster is a collection of Slurmd nodes governed by a
+ single running instance of the Slurm Controller Daemon (SlurmCtld).
+ /All/ configuration options defined in slurm.conf pertain to the
+ Cluster defined by name in the conf.  Though multiple SlurmCtlds may
+ exist in one Cluster, the duplicates are defined as backups, and
+ exist solely for redundancy if reliable uptime is a priority. We have
+ no backups, because we like to live dangerously, and we just too cool
+ for it.  Clusters are less important to us, and will not be touched
+ upon much further, simply because TIGRlab will never grow beyond the
+ size of tigrslurm. For completeness, there is one level of
+ organisation higher than the Cluster: Slurm provides for the
+ possibility of Federations - collections of Clusters where the
+ SlurmCtld of each Cluster co-ordinates labour and job queueing
+ between all Federated clusters. In Federation, each Cluster has its
+ own slurm.conf and all of its own apparatus (accounting database,
+ etc.).  The official Slurm documentation recommends each individual
+ Cluster refrain from servicing "more than a few hundred thousand
+ jobs" for any sustained length of time, and encourages Federation of
+ Clusters for those with larger computing requirements.  /We will
+ never be this cool./
+
+** Queue: high-moby
+*** Avail:120log,386553MBram, locality optimised.
+*** 25% ram reserved, 0% logs reserved. Nodes:
+|log:40|soc:2|cps:10@2.20ghz|tpc:2|ram:131944MB|swp:134136MB|gpu:nvidia(1) | deckard
+|log:40|soc:2|cps:10@2.20ghz|tpc:2|ram:131944MB|swp:134136MB|gpu:nvidia(1) | downie
+|log:40|soc:2|cps:10@2.20ghz|tpc:2|ram:131944MB|swp:134136MB|gpu:nvidia(1) | ogawa
+*** _Contains a bit under half of the lab's computing resources, in 3 headless machines:_
+    High-moby is effectively our /long queue/. More specifically, its
+    partition consists of three machines which reserve no logs and
+    little ram to themselves since they are headless and don't need to
+    preserve realtime system responsivity. By locality optimised, we
+    precisely mean that they have no specialised [[Quality Of Service][quality of service]]
+    rules, and an infinitely high ceiling on maximum jobstep
+    length. These configurations are designed to ensure that jobs can
+    sit on high-moby for a very large amount of time (until finished,
+    is the idea) without being held, descheduled, or reprioritised.
+    Ultimately, these rules are intended to ensure that /jobs do not
+    switch machine mid-job/. High-moby is *not* intended to go
+    underutilised, and should be submitted to whenever available. In
+    the future we may configure a ruleset to govern jobs overflowing
+    from low-moby onto high-moby, so as to ensure the utilisation of
+    these resources. This has not yet (2019-01-22) been implemented.
+    Because of the configuration of this queue, all jobs which are
+    valid on low-moby are valid on high-moby, excepting those which
+    explicitly demand distribution across more than three physical
+    compute nodes. This is not necessarily true for any other queue
+    than low-moby.
+
+** Queue: low-moby
+*** Avail:208log,682873MBram, granularity optimised.
+*** 25% ram reserved, 50% logs reserved. Nodes:
+|log:16|soc:1|cps:8@3.00ghz|tpc:2|ram:131937mb|swp:134115mb|gpu:nvidia(4) | hopper
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:49443MB|swp:50327MB|gpu:nvidia(1) | davinci
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:49443MB|swp:50327MB|gpu:nvidia(1) | franklin
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:49443MB|swp:50327MB|gpu:nvidia(1) | kandel
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:49443MB|swp:50327MB|gpu:nvidia(1) | mansfield
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:49451MB|swp:50327MB|gpu:nvidia(1) | crick
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:24670MB|swp:25161MB|gpu:nvidia(1) | cajal
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:24670MB|swp:25161MB|gpu:nvidia(1) | nissl
+|log:16|soc:2|cps:4@3.60ghz|tpc:2|ram:24679MB|swp:25161MB|gpu:nvidia(1) | talairach
+|log:8|soc:1|cps:4@3.30ghz|tpc:2|ram:32860MB|swp:33475MB|gpu:nvidia(1) | tesla
+|log:8|soc:2|cps:4@3.60ghz|tpc:1|ram:24679MB|swp:25160MB|gpu:nvidia(1) | milner
+|log:8|soc:2|cps:4@3.60ghz|tpc:1|ram:24679MB|swp:25160MB|gpu:nvidia(1) | penfield
+|log:8|soc:2|cps:4@2.40ghz|tpc:1|ram:32900MB|swp:33509MB|gpu:nvidia(1) | lovelace
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32861MB|swp:33473MB|gpu:nvidia(1) | bulbasaur
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32861MB|swp:33474MB|gpu:nvidia(1) | higgs
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32861MB|swp:33474MB|gpu:nvidia(1) | purkinje
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | com02
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | com03
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | darwin
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | mendel
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | strangelove
+*** _Contains over half of the lab's computing resources, across 21 workstations:_
+    Our main processing queue (equiv. to SGE main.q); people submit to
+    "the queue" and it goes here by default. Contains over half of the
+    lab's computing resources, distributed across twenty-one
+    workstations that won't be killed if they each run a few jobs.
+    Granulrity optimised, so jobs get smeared across low-moby,
+    consuming logs and ram but leaving unused resources available for
+    further subscription.  Ideally, nodes on low-moby do not become
+    saturated by a single job. Jobs which do fail on low-moby fail
+    unconditionally and go back to debugging. In a (possibly) ideal
+    world, we will have rules in place for low-moby to overflow jobs
+    up to high-moby, in the event that all of low-moby is
+    saturated. Low-moby respects [[Quality Of Service][quality of service]] rules, meaning
+    that jobs on this queue can be held, requeued, deprioritised, and
+    so on. Fairshare and resource billing play important weighting
+    factors here, which is to say, quality of service considersations
+    demand that unlike with high-moby, resources in this queue should
+    not be unfairly monopsonised by the first, greediest user to
+    submit large jobs.  Job priority factors are [[PriorityType=priority/multifactor][multiply conditional]],
+    so jobs can and will be shuffled around low-moby over time under
+    reasonably high workload.  Jobs submitted to low-moby *fail out
+    after a deadline of 64h* and, crucially, *do not automatically
+    requeue* except in the case of job arrays which always attempt to
+    requeue several times before declaring themselves FAILED. Any
+    normal job with steps requiring more time than 64h belong on
+    high-moby, or are otherwise broken and need to be fixed.
+
+** Queue: cudansha
+*** Avail:42log,224660MBram,GPU GRES.
+*** 20% ram reserved, 50% logs reserved. Nodes:
+|log:16|soc:1|cps:8@3.00ghz|tpc:2|ram:131937mb|swp:134115mb|gpu:nvidia(4) | hopper
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32861MB|swp:33473MB|gpu:nvidia(1) | bulbasaur
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32861MB|swp:33474MB|gpu:nvidia(1) | higgs
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32861MB|swp:33474MB|gpu:nvidia(1) | purkinje
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | com02
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | com03
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | darwin
+|log:6|soc:1|cps:6@1.70ghz|tpc:1|ram:32868MB|swp:33473MB|gpu:nvidia(1) | mendel
+*** _Contains every machine in our lab with GPUs suitable for CUDA accelerated computing:_
+    Cudansha is, as of the time of this writing, a strict subset of
+    low-moby containing only and all of the machines in our lab
+    suitable for GPU accelerated computing with CUDA. The purpose of
+    cudansha is three-fold.  While GPU machines may be indexed
+    precisely by jobs requesting access to their GRES (Generic
+    RESources) in the form of GPUs, the specific case of pushing jobs
+    onto cudansha serves to ensure that those jobs *have no time
+    limitations.* While jobs on low-moby fail out after 64h, jobs on
+    cudansha have no deadline by default, and thus cudansha is suited
+    for compute-intensive GPU jobs which may require extremely long
+    running times. Even though every machine in cudansha
+    simultaneously exists in low-moby, submitting GPU-based jobs to
+    cudansha instead will ensure those jobs run with no hard
+    time-limitations. Secondly, cudansha has a lower partition
+    priority weight than low-moby, and resultingly, jobs submitted to
+    low-moby will *preferentially seek machines which are not
+    CUDA-capable.* This should result in higher availability of
+    CUDA-capable machines, unless low-moby has become fully saturated
+    with jobs, in which case a job reservation may be required to
+    enable priority access. Finally, the assignment of a subset of
+    low-moby which includes /all/ CUDA-capable machines obviates the
+    need of users to look up which machines their CUDA jobs may end up
+    running on.
+
+** Queue: thunk
+*** Avail:16log,63940MBram.
+*** 20% ram reserved, 75% logs reserved. Nodes:
+|log:4|soc:1|cps:4@1.80ghz|tpc:1|ram:16375MB|swp:16715MB|gpu:nvidia(1) | hebb
+|log:4|soc:1|cps:4@1.80ghz|tpc:1|ram:16369MB|swp:16718MB|gpu:amd(1) | laplace
+|log:4|soc:1|cps:4@1.80ghz|tpc:1|ram:16369MB|swp:16718MB|gpu:amd(1) | mrsdti
+|log:4|soc:1|cps:4@1.80ghz|tpc:1|ram:16369MB|swp:16719MB|gpu:amd(1) | golgi (FUTURE)
+*** _Contains four workstations, designated for epsilon job requirements:_
+    Thunk is a small 'runoff' node which only gives up four logs, and
+    has a reasonably tight job deadline of 1h. This exists so that the
+    smallest machines in the lab may still be utilised in a manner
+    which does not interfere with their use as responsive
+    workstations, given their resource constraints.  It would be
+    technically correct to say that it is topoligically optimised for
+    locality, but this is merely because jobs executed on these nodes
+    do not have the allocative latitude to move from machine to
+    machine once started.  Similarly, though thunk jobs respect
+    quality of service, in fact QOS and Fairshare billing calculations
+    become negligible at times of under 1h for any priority weighting
+    values appropriate to the real work we do in our lab. Batch jobs
+    and job arrays consisting of trivial job steps folded over
+    regular, moderately-sized datasets, i.e., jobs for quickly backing
+    up, moving, saving, or cleaning up items are ideal for thunk, and
+    will allow us to avoid requeueing ongoing real work in moby. In
+    the future we may have a ruleset which specifies that jobs which
+    fail on thunk automatically 'fail up' to low-moby and are requeued
+    there instead, but this is not implemented.
+
+* "The Pack"
+  The structure of our Slurm module is quite simple, and its exact
+  reproduction is technically trivial. Essentially, it is an
+  environment module composed of two parts: MUNGE and Slurm. Both
+  parts are strictly necessary for Slurm to function, and both are
+  thus included in our Slurm pack. A third component, the MariaDB
+  database, is also strictly necessary, but compiling it and sourcing
+  it increases the complexity of the Slurm pack vastly, and we may
+  only end up including it with later versions of the Slurm pack, if
+  ever. For the moment, it is separately installed on the [[DbdHost%3Dsrv-queue][DbdHost]]
+  using apt-get yadda-yadda.
+** MUNGE
+   MUNGE is the authentication daemon used by Slurm. There are at
+   present two options for allowing Slurm components to authenticate
+   communications between each other - OpenSSL and MUNGE. While
+   OpenSSL would /seem/ to be the go-to tried-and-true solution, the
+   reality is that MUNGE was designed explicitly for use with Slurm,
+   and its deployment and implementation with our pack are
+   /exceedingly/ simple. It is the recommended authentication
+   method. For the purposes of Slurm setup, MUNGE consists of two
+   components, a daemon called /munged/, and a cryptographic
+   authentication key, located at /etc/munge/munge.key. The
+   authentication key *must be identical on every machine on which it
+   is located* and furthermore *it must be located individually on
+   each machine in the Slurm cluster.* As a result, our slurm-queue
+   ansible role pushes an identical munge.key to each machine in the
+   cluster, and forces the push each time, to ensure that no two
+   machines may ever have different copies of it. If any machine has a
+   differing copy of the key, that machine is no longer part of the
+   Slurm cluster, and in fact cannot even complete any local Slurm
+   jobs it already happened to be running. MUNGE authentication is
+   *strictly crucial to everything about Slurm's operation*. No Slurm
+   components will even /attempt/ work without access to
+   MUNGE. MUNGE's installation is very simple but everything about its
+   installation is absolutely essential. It installation on a machine
+   consists of *exactly the following:*
+*** /var/run/munge - stores munge's pid file and socket
+  File: '/var/run/munge'
+  Size: 100       	Blocks: 0          IO Block: 4096   directory
+Device: 17h/23d	Inode: 264         Links: 2
+Access: (0711/drwx--x--x)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-28 15:16:58.063584451 -0500
+Modify: 2019-01-28 18:39:14.240184792 -0500
+Change: 2019-01-28 18:39:14.240184792 -0500
+ Birth: -
+
+**** These are as follows
+  File: '/var/run/munge/munged.pid'
+  Size: 6         	Blocks: 8          IO Block: 4096   regular file
+Device: 17h/23d	Inode: 839         Links: 1
+Access: (0644/-rw-r--r--)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-28 18:39:14.244184875 -0500
+Modify: 2019-01-28 18:39:14.240184792 -0500
+Change: 2019-01-28 18:39:14.240184792 -0500
+ Birth: -
+
+  File: '/var/run/munge/munge.socket.2'
+  Size: 0         	Blocks: 0          IO Block: 4096   socket
+Device: 17h/23d	Inode: 1018        Links: 1
+Access: (0777/srwxrwxrwx)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: XXXX-XX-XX XX:XX:XX.XXXXXXXXX -XXXX
+Modify: XXXX-XX-XX XX:XX:XX.XXXXXXXXX -XXXX
+Change: XXXX-XX-XX XX:XX:XX.XXXXXXXXX -XXXX
+ Birth: -
+
+  File: '/var/run/munge/munge.socket.2.lock'
+  Size: 0         	Blocks: 0          IO Block: 4096   regular empty file
+Device: 17h/23d	Inode: 1014        Links: 1
+Access: (0200/--w-------)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: XXXX-XX-XX XX:XX:XX.XXXXXXXXX -XXXX
+Modify: XXXX-XX-XX XX:XX:XX.XXXXXXXXX -XXXX
+Change: XXXX-XX-XX XX:XX:XX.XXXXXXXXX -XXXX
+ Birth: -
+
+*** /var/log/munge - stores munge's runtime log file
+  File: '/var/log/munge'
+  Size: 4096      	Blocks: 8          IO Block: 4096   directory
+Device: 801h/2049d	Inode: 67898824    Links: 2
+Access: (0700/drwx------)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-28 20:17:31.587297828 -0500
+Modify: 2019-01-04 23:42:57.832017341 -0500
+Change: 2019-01-04 23:42:57.832017341 -0500
+ Birth: -
+
+**** This is as follows
+  File: '/var/log/munge/munged.log'
+  Size: 31959     	Blocks: 72         IO Block: 4096   regular file
+Device: 801h/2049d	Inode: 67898825    Links: 1
+Access: (0640/-rw-r-----)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-04 23:42:57.832017341 -0500
+Modify: 2019-01-28 18:39:14.244184875 -0500
+Change: 2019-01-28 18:39:14.244184875 -0500
+ Birth: -
+
+*** /var/lib/munge - stores munge's pseudorandom seed file and pipes for file-descriptor-passing
+  File: '/var/lib/munge'
+  Size: 4096      	Blocks: 8          IO Block: 4096   directory
+Device: 801h/2049d	Inode: 67896614    Links: 2
+Access: (0711/drwx--x--x)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-04 23:42:49.267840604 -0500
+Modify: 2019-01-28 18:39:14.196183880 -0500
+Change: 2019-01-28 18:39:14.196183880 -0500
+ Birth: -
+
+**** These are as follows
+  File: '/var/lib/munge/munge.seed'
+  Size: 1024      	Blocks: 8          IO Block: 4096   regular file
+Device: 801h/2049d	Inode: 67896592    Links: 1
+Access: (0600/-rw-------)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-28 18:39:14.240184792 -0500
+Modify: 2019-01-28 18:39:14.196183880 -0500
+Change: 2019-01-28 18:39:14.196183880 -0500
+ Birth: -
+
+*** /etc/munge - stores the munge's secret key
+  File: '/etc/munge'
+  Size: 4096      	Blocks: 8          IO Block: 4096   directory
+Device: 801h/2049d	Inode: 83919304    Links: 2
+Access: (0700/drwx------)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-05 01:22:29.806511207 -0500
+Modify: 2019-01-05 01:23:07.515284157 -0500
+Change: 2019-01-05 01:23:07.515284157 -0500
+ Birth: -
+
+**** This is as follows
+  File: '/etc/munge/munge.key'
+  Size: 1024      	Blocks: 8          IO Block: 4096   regular file
+Device: 801h/2049d	Inode: 25223709    Links: 1
+Access: (0400/-r--------)  Uid: (  998/   munge)   Gid: (  998/   munge)
+Access: 2019-01-28 14:51:13.931156879 -0500
+Modify: 2019-01-05 01:23:07.191277516 -0500
+Change: 2019-01-05 01:23:07.515284157 -0500
+ Birth: -
+
+*** 
+** Slurm
+
+* Control groups:
+
+  We use cgroups for both process monitoring, resource constraint, and
+  job accounting, but not for resource affinity. Because Debian derivatives
+  disable certain useful cgroups by default, we reset them on the kernel
+  command line via GRUB, with the _cgroup_enable=memory_ and _swapaccount=1_
+  flags. Resultingly we can compel correct behaviour of queue jobs while
+  also preserving the queue infrastructure itself from being OOM-killed
+  by the kernel when queue jobs get a little expensive. The task/cgroup plugin
+  is set up in slurm.conf but a variety of its internal configurations are in the
+  separate cgroup.conf file, also in /etc. In effect, Slurm's use of control groups
+  provides us with a means of enforcing guaranteed resource constraint upon
+  queue jobs. See [[cgroup.conf settings:][cgroup.conf]]
+
+** More
+The way that control groups work is that they take the form of a hierarchy of directories mounted under
+[[CgroupMountpoint%3D/sys/fs/cgroup][/sys/fs/cgroup]] and the local Slurmd slave on every compute node will allocate all queue-submitted
+jobs with corresponding files created inside the cgroup directories. The kernel monitors these directories
+and thus knows every cgrouped process by PID, PPID, UID, and name. The exact hierarchical union of cgroups
+under which a particular process happens to fall informs the kernel of the constraints levied against
+that process _and all of that process' children recursively._ This means that jobs cannot escape their
+constraints by forking, as the kernel will ensure any children will simply subdivide the cgroup prescribed
+resources allocations.
+*** Note:
+/More precisely/, the cgroup hierarchy is not /monitored/ by the kernel, but rather, the cgroup
+hierarchy is a pseudo-filesystem like /proc and /dev, which is, at the backend, a filesystem-like
+interface to kernelspace's understanding of the state of the process table. The internal logic
+of the Cgroup subsystem of the kernel is that it implements a method for userspace to explicitly
+express control and constraint directives to the kernel's timesharing and multitasking systems.
+Additional Reading: [[http://man7.org/linux/man-pages/man7/cgroups.7.html][cgroups(7)]] . [[https://slurm.schedmd.com/cgroups.html][Cgroups Guide]]
+* Accounting:
+
+  Accounting in Slurm is based around a series of profiling and data gathering
+  plugins. We don't use most of them, such as the HDF5 and FreeIPMI plugins,
+  simply because they're not immediately useful for a cluster of our size.
+  In terms of what we actually use, we have an accounting system set up with
+  a MariaDB database, which is governed by a Slurm component called the
+  Slurm Database Daemon, or SlurmDBD. No human will ever have to directly in-
+  teract with MariaDB consequently, as SlurmDBD is the sole privileged user
+  of the accounting database and serves its data over the network to author-
+  ised Slurm users. Accounting a profiling in Slurm is automatic, because
+  our Slurm cluster is configured to use cgroups, which gives the node-
+  local Slurm Daemon implicit discretionary control over all of its child
+  processes. See [[ProctrackType%3Dproctrack/cgroup][ProctrackType:slurm.conf]] . [[Control%20groups:][Cgroups]]
+
+** SlurmDBD:
+   SlurmDBD is a daemon that is used for basic accounting. It keeps track of job
+   start and stop times, job step times, job fail and success conditions, all of the
+   metadata needed by the [[PriorityType%3Dpriority/multifactor][multifactor priority]] scheduling algorithm, and so on.
+   SlurmDBD is actually just a front end for MariaDB as stated above. We use MariaDB
+   since it seems to play better with the plugins I wanted to provide initially, and was
+   easier to compile. It also looks like it gets substantially more development, with
+   a larger, more active community. We want to use SlurmDBD for as much accounting as
+   we can, purely because it's more convenient than having different types of accounting
+   in different places. Essentially, this is the basic accounting we'll care about most
+   of the time. It is also important that our MariaDB install support the InnoDB storage
+   engine in order to facilitate database rollbacks. Ours does so. Currently we're
+   using MariaDB 10.1.35, but I would like to build any of the newer versions for our
+   use, as they support many new features and performance improvements. Ifs and buts.
+   See [[slurmdbd.conf settings:][slurmdbd.conf]]
+   Additional reading [[https://slurm.schedmd.com/accounting.html][Accounting and Resource Limits]] . [[https://mariadb.com/kb/][MariaDB Knowledge Base]]
+*** TODO Get MariaDB only listening to localhost, while allowing SlurmDBD to access it; +my.cnf settings+.
+* Configuration
+
+  Configuration of Slurm takes place in a series of files located under /etc/slurm,
+  or /etc/slurm-llnl. Though many possible configuration files are available, the ones
+  required to govern the constellation of plugins we have enabled are [[slurm.conf]],
+  [[cgroup.conf]], and [[slurmdbd.conf]].
+
+** slurm.conf
+=slurm.conf= is an ASCII text file which stores configuration for both the SlurmCtld and Slurmd daemons.
+It must be present on both the controller node ([[ControlMachine=srv-queue][SlurmctldHost]]) and every compute node, and must be readable
+by the [[SlurmUser%3Dqueued][SlurmUser]] and the [[AccountingStorageUser%3Dqueuedbd][AccountingStorageUser]]. All files defined in slurm.conf, including log, pid, and
+spool files. must be owned by the Slurm [[SlurmUser=queuectld][SlurmUser]].
+Additional reading: [[https://slurm.schedmd.com/slurm.conf.html][slurm.conf(5)]]
+*** Generic Queue and Node settings:
+**** ClusterName=tigrslurm
+***** ~String:~ This specifies the name of our compute cluster.
+This is only really important for cases in which more than one cluster is managed by
+Slurm, however it is required as a basic definition. Though not significantly case
+sensitive, some databases expect string entries to be in lowercase so slurm silently
+coerces all uppercase characters to lowercase, so let's keep these names in lowercase.
+**** SlurmctldHost=srv-queue
+***** ~Case String:~ This specifies the hostname of the machine on which SlurmCtld will run.
+It is also our [[AccountingStorageHost=srv-queue][AccountingStorageHost]] and our [[DbdHost=srv-queue][DbdHost]] and so on. There can be more than one
+SlurmCtld per cluster, but any secondary Slurm Controller Daemon operational per cluster
+/must/ be designated a BackupHost, and will listen silently for the failure of the primary
+SlurmCtldHost. We have no BackupHost, so the failure of our SlurmCtldHost will result in
+the a core dump to the [[StateSaveLocation%3D/var/spool/slurm][StateSaveLocation]], while the Slurmds on each compute node attempt
+to finish their current [[SlurmdSpoolDir%3D/var/spool/slurm][spools]].
+**** SlurmUser=queued
+***** ~Case String:~ This specifies the username that SlurmCtld runs as.
+SlurmCtld generally runs with this user account so as to avoid running as root. It needs
+to exist everywhere on the cluster (all nodes), in order to facilitate Munge authentication
+with the controller node.
+**** SlurmCtldPort=6817
+***** ~Int:~ This specifies the port on which SlurmCtld listens for work from Slurmd.
+Slurmd instances on the cluster's compute nodes/workstations submit work to SlurmCtld,
+and this is where those work submissions are sent to. See [[SlurmdPort=6818][SlurmdPort:slurm.conf]]
+**** SlurmdPort=6818
+***** ~Int:~ This specifies the port on which Slurmd listens for work on each compute node.
+SlurmCtld and Slurmd use these two respective ports to communicate job status updates to one
+another. This is the Slurmd side of that setup. See [[SlurmCtldPort=6817][SlurmCtldPort:slurm.conf]]
+**** StateSaveLocation=/var/spool/slurm
+***** ~Case String:~ Specifies the path where SlurmCtld saves its state in case it goes down in flames.
+Here we have it going in /var/spool simply because that place persists between boots, though
+ideally SlurmCtld should never be down for long. It is the same location as our [[SlurmdSpoolDir=/var/spool/slurm][SlurmdSpoolDir]],
+so that we can keep everything together.
+**** SlurmdSpoolDir=/var/spool/slurm
+***** ~Case String:~ Specifies the path where Slurmd stores state including job steps and script information.
+Here we have it going in /var/spool simply because it should never be down for very long,
+but state will persist between boots if slurmd goes down for extraneous reasons like a reboot.
+This must exist on all nodes but be unique to each so as to prevent mutliple Slurmds from
+writing to each other's files. If we want this to be a shared location (e.g. on NFS) we
+can add %h and %n to this value and Slurm will exand these into machine hostname and
+Slurm cluster-name (what we named this node in slurm.conf) path components. It is the
+same location as our [[StateSaveLocation=/var/spool/slurm][StateSaveLocation]] so that we can keep everything together.
+**** PluginDir=/usr/lib/slurm
+***** ~Case String:~ This specifies the filesystem path Slurm uses to attempt to find its plugins.
+The default is /usr/local/lib/slurm, but we use /usr/lib/slurm because of the the internal structure
+of our deployable pack. This is not set in stone. See [[PluginDir=/lib/slurm][PluginDir:slurmdbd.conf]]
+***** TODO again, find out how to create two links to identical text fields located in different subheadings.
+**** TmpFS=/tmp
+***** ~Case String:~ This specifies exactly what you think it does.
+The node local filesystem location Slurmd uses for temporary job data storage when
+that data needs to be serialised to disk rather than held in memory on some node.
+**** UsePAM=1
+***** ~Bool:~ This specifies that we want to use PAM in addition to cgroups to enforce resource limits.
+Doing so in slurm.conf configures SlurmCtld and Slurmd to expect to be able to use PAM, but PAM
+must also be configured to support Slurm via the file /etc/pam.d/slurm. Our Slurm pack provides
+this file. This helps to define upper bounds on resource limits, and we can use PAM on nodes to
+regulate resource limits for future job scheduling, to be respected my Slurm, if we notice nodes
+are getting a little congested. Note that there are other ways we can use PAM with Slurm to limit
+resource subscription, though some of them seem inappropriate for a cluster of this size.
+Additional reading: [[https://www.slurm.schedmd.com/pam_slurm_adopt.html][pam_slurm_adopt]].
+****** pam.d/slurm config:
+auth required pam_localuser.so
+auth required pam_shells.so
+account required pam_unix.so
+account required pam_access.so
+session required pam_unix.so
+*** Scheduling settings:
+**** FastSchedule=0
+***** ~Int:~ Specifies how much data SlurmCtld should gather as it makes scheduling decisions.
+Specifically, whether or not it polls each node's Slurmd for resource configuration
+before making scheduling choices. The default value of 1 causes SlurmCtld to treat
+each node as though its resources are as specified in slurm.conf, while a value of
+0 results in SlurmCtld polling Slurmd on each node for local resource availability
+at node registration time in order to make scheduling choices. We don't have that
+many nodes and our queue is highly heterogeneous, as a result the number of node
+entries in slurm.conf is not significantly smaller than the number of actual nodes,
+ergo we don't save much time by doing FastScheduling (versus, say, a warehouse full
+of physically similar rackblades).
+****** Nota bene:
+This setting has special meaning for our cluster because we use [[SelectType=select/cons_res][select/cons_res]].
+If we set FastSchedule to 0 and SelectType to cons_res; then the resource counts
+specified in slurm.conf on a node-per-node basis *must match those found by
+polling on the nodes* or Slurmd will undersubscribe the un-specified resources
+and /will also neglect to apply job confinement and resource constraints to
+those resources/.
+**** SchedulerType=sched/backfill
+***** ~Case String:~ This specifies the plugin SlurmCtld uses to queue up job submissions.
+The basic options are builtin, hold, and backfill. Hold and backfill are augmentations
+of builtin, which is a simple FIFO. sched/backfill allows lower priority jobs to skip the
+queue schedule and run first if their expected completion time does not otherwise delay higher
+priority jobs. This behaviour depends on users submitting jobs with specified time limits.
+If users specify jobs with no time limits, the queue behaves as though a sched/builtin FIFO.
+*If we change this setting, the SlurmCtld must be restarted before it will take effect.*
+**** ProctrackType=proctrack/cgroup
+***** ~Case String:~ This specifies the plugin Slurmd uses to keep track of processes forked by job steps.
+If we change this the local Slurmds must be restarted on each changed machine.
+proctrack/cgroup causes Slurmd to use the Linux kernel control groups hierarchy
+to manage the processes begun by job steps, as this is the most reliable way of
+recursively governing process trees, Linuxly-speaking
+See [[Control groups:][Control Groups]] . [[cgroup.conf]]
+**** SelectType=select/cons_res
+***** ~Case String:~ This identifies the selection plugin to use in subscribing resources to jobs.
+We use select/cons_res, which is consumable resources; this treats individual hardware resources
+on nodes (processor logs, memory by the megabyte, and GRES (generic resources, such as GPUs and
+other /dev/node addressable hardware)) as atomically disaggregate, so that we can granularly apportion
+jobs across multiple nodes rather than having those jobs simply saturate nodes up to their usage
+requirements. We can parameterise this plugin's behaviour with the [[SelectTypeParameters=CR_CPU_Memory][SelectTypeParameters]] option.
+Additional reading: [[https://slurm.schedmd.com/cons_res.html][Consumable Resources in Slurm]]
+****** Two other options include:
+******* +select/linear:+ Allocates jobs /by node/ according to job-specified log and ram requirements.
+Since our queue is highly heterogeneous, this I suspect is a poor choice, as it preferentially
+allocates jobs to high resource nodes, which will result in saturation of the strongest machines
+even if they are technically underutilised (e.g. our 16 log machines may end up being subscribed
+jobs requiring some subset of their logical thread availability and then be saturated with those
+jobs, pushing other jobs onto weaker machines first, since jobs will never be allocated at a level
+below the individual node). This selection plugin also takes network topology into account, though
+our network topology is flat which means this plugin benefits us less than it would if we had large
+numbers of highly similar nodes with complex topology.
+******* +select/serial:+ Allocates resources similarly to select/cons_res, but allocates jobs only to single logs.
+I.e. jobs will get plunked wherever they can take up and monopsonise a processor core for some
+some time; this takes no other resources into account (such as available memory). Optimised for job
+throughput; I'd rather have cons_res and have Slurm consider memory availability as well.
+**** SelectTypeParameters=CR_CPU_Memory
+***** ~String:~ This specifies the parameters used by the Slurmd in allocating node resources to jobs.
+Since the selection plugin we use is [[SelectType=select/cons_res][cons_res]], which allows highly granular resource subscriptions, we
+choose CR_CPU_Memory, which specifies that both memory (in megabytes) and logs (down to the hyperthread
+level) will be disaggregated in assigning resources to jobs and job steps. The default is CR_CPU, which
+allocates cores down to the thread-level but disregards memory availability.
+****** Other options include:
++CR_Core:+ This granularises resource subscription down to the physical core level, disregarding
+hyperthreads when available and not considering memory.
+Many similar options involving some combination of CR_{processorgranulaity}_{memorysubscription}.
+Additional reading: [[https://slurm.schedmd.com/slurm.conf.html][slurm.conf(5)]]
+**** TaskPlugin=task/affinity,task/cgroup
+***** ~Case String | Tuple:~ This specifies the task plugin or plugins used to govern task-resource affinity.
+This operates /at the sub-node level/. Particularly, this specifies the algorithms used to
+determine how resources will be consumed at the job step level on by the nodes themselves.
+As recommended by the devs, we use a composition of the affinity and cgroup task plugins,
+as the cgroup algorithms are poor at handling affinity, while the affinity plugin has inferior
+provisions for resource constraint. Specifically, we chain both plugins together in slurm.conf,
+and they will both be used at runtime, then we /disable/ TaskAffinity in cgroup.conf, causing
+task/cgroup to neglect to manage resource affinities at runtime so task/affinity can do it.
+See [[TaskAffinity=no][TaskAffinity:cgroup.conf]]
+**** TaskPluginParam=Autobind=Threads
+***** TODO ~String | Tuple:~ This allows us to optionally parameterise the behaviour of the task plugin.
+The parameters we've chosen are Autobind=Threads, which tells the task plugin to default to setting
+affinity down to the thread level when the user fails to specify the task affinity in their job
+specification / command line; otherwise use the user's specified task binding.
+**** PriorityType=priority/multifactor
+***** ~Case String:~ Specifies the plugin we want to use to govern job scheduling priority queue-wide.
+The two legal options here are priority/basic and priority/multifactor. priority/basic is a timer that
+counts up over time (i.e. order of arrival). priority/multifactor counts up based on time since arrival,
+but also performs relativising priority calculations /and possibly re-prioritises/ jobs throughout their
+existence on the queue, based on numerous factors that we can specify with the in [[PriorityFlags%3DCALCULATE_RUNNING,SMALL_RELATIVE_TO_TIME][PriorityFlags]] and other
+options.
+****** Factors:
+******* Age: How long has the job been on the queue without scheduled run time?
+Considered alone, age factor is equivalent to priority/basic scheduling. Jobs don't "age up" their
+priority if they're unscheduled because they depend on the completion of jobs that /are/ currently
+running, unless we set the ACCRUE_ALWAYS PriorityFlag, which we haven't.
+******* Size: How many /processing resources/ has the job been assigned?
+This is a tabulation of number of /granular processor resources/ (i.e. logical processors or
+physical cores or machines, etc.) have been assigned to the job. Depending on the bool value of
+the [[PriorityFavorSmall=YES][PriorityFavorSmall]] setting, this factor will favour jobs which saturate resources, or jobs
+which do not.
+******* TODO Fair-share:
+Write this part
+******* TODO Partition:
+Write this part
+******* TODO QOS:
+Write this part
+******* TODO TRES:
+Write this part
+Additional reading: [[https://slurm.schedmd.com/priority_multifactor.html][Multifactor Priority Plugin]]
+**** PriorityFlags=CALCULATE_RUNNING,SMALL_RELATIVE_TO_TIME
+***** ~Record:~ PriorityFlags allow us to optionally parametrise the [[PriorityType=priority/multifactor][priority/multifactor]] plugin's behaviour.
+If we decide to revert to the priority/basic plugin, we /do not need to remove these PriorityFlags/, as
+their behviour is situational only to the multifactor plugin. CALCULATE_RUNNING specifies that we prefer
+job priorities to be recalculated /while running and while suspended/ as well as when first enqueued,
+based on a variety of other factors. SMALL_RELATIVE_TO_TIME specifies that we prefer the job size
+consideration factor to be determined based on the job's size divided by the assigned time limit.
+**** PriorityFavorSmall=YES
+***** ~Bool:~ Whether the priority plugin favours large or small jobs as part of its job size factor.
+The job size factor in the [[PriorityType=priority/multifactor][priority/multifactor]] plugin is configured by this setting to
+weight up or down jobs which do or do not saturate lots of processing resources.
+**** Additional reading: [[https://slurm.schedmd.com/sched_config.html][Scheduling Configuration Guide]]
+*** Queue Limiter settings:
+**** SlurmdTimeout=180
+***** ~Int:~ The time SlurmCtld will wait for a non-responsive Slurmd before DOWNing its node.
+SlurmCtld tests the nodes periodically by polling their Slurmd. This is the time in seconds that
+SlurmCtld will wait for a given Slurmd on some compute node to respond before reconfiguring the
+node into a DOWN state. The default is 300s but I'd rather not have compute nodes down for 5 full
+minutes while being factored into queue availability.
+**** ReturnToService=1
+***** ~Int:~ Specifies when a compute node marked as DOWN by SlurmCtld is returned to service.
+Possible options are 0, 1, 2. Option 1 specifies that a node will be returned to accessibility
+within the queue when its Slurmd re-registers it with SlurmCtld on the head node with a valid
+configurtion (as defined in slurm.conf) /iff/ it was set into a DOWN state due to its Slurmd
+being non-responsive. If it was set to DOWN for any other reason, such as machine-local reboot
+or resource oversubscription, etc, it must be manually returned to service.
+****** Other options are:
++0:+ Never return a node to service from a DOWN state unless explicitly. This is the default value.
++2:+ Always return a node to service from its DOWN state when its Slurmd registers it with a valid
+configuration, irrespective of the reason it was DOWNed in the first place.
+**** InactiveLimit=60
+***** ~Int:~ How long Slurmd will wait for a command to return before clobbering its associated job( step(s)).
+The interval in seconds that Slurmd will wait for a stopped (inactive/dead/killed/zombie)
+job allocation command's (such as srun or salloc) return value before terminating the job
+respective to that command. This prevents jobs steps from beginning/continuing if the command
+line used to schedule them is in some way failing. 60 is a rather low number but I would rather
+have a relatively tight coupling between the failure/stoppage of a job scheduling action and
+the termination of its corresponding job, should that job have commenced in some state. The
+default InactiveLimit is zero, according to which Slurmd will allow jobs to proceed whether
+or not srun or salloc go unresponsive.
+**** MaxJobCount=300000
+***** ~Int:~ Specifies the number of jobs SlurmCtld will submit to the MariaDB database at once.
+After this number has been reached all further job submissions attempts will fail. We can
+further constrain job submissions if we like by setting the MaxSubmitJobs setting per user
+per queue. The default MaxJobCount is 10000, considerably smaller than our selection, and
+Slurm's threading gets a little inefficient after a few hundred thousand job submissions,
+resulting in performance hits (the recommended course of action in such cases is splitting
+clusters).
+****** TODO MaxSubmitJobs is somewhere else in accounting/scheduling documentation... find out where!
+**** WaitTime=30
+***** ~Int:~ How long srun will wait to SIGTERM job steps and other components individually.
+Specifies the interval in seconds that the srun command will wait before terminating all job tasks
+after their parent task has been sent SIGTERM. There is another setting, not present in our
+slurm.conf, KillWait, which defaults to 30 seconds; by having WaitTime=30 and a default KillWait,
+commands like srun and salloc will allow a grace period of at most 1m before SIGKILLing any job
+tasks which fail to die gracefully on command.
+*** Accounting settings:
+**** AccountingStorageHost=srv-queue
+***** ~String:~ This specifies our the hostname of the machine which runs our MariaDB accounting database.
+It is also our [[ControlMachine=srv-queue][SlurmctldHost]], [[StorageHost=srv-queue][StorageHost]], and corresponding [[DbdHost=srv-queue][DbdHost]]; though in our case all of our cluster is
+governed from one system, there is in fact a salient difference between AccountingStorageHost and StorageHost: it is
+that [[AccountingStorageHost=srv-queue][ASH]] exists only in slurm.conf and specifies to the Slurmctld the hostname of the machine where the SQL database
+lives, while the StorageHost setting exists only in slurmdbd.conf and is read by SlurmDBD to specify where the
+accounting database lives. Meanwhile, [[DbdHost=srv-queue][DbdHost]] exists only on slurmdbd.conf and informs SlurmDBD of its expected
+hostname. See [[DbdHost=srv-queue][DbdHost:slurmdbd.conf]] . [[StorageHost=srv-queue][StorageHost:slurmdbd.conf]]
+**** AccountingStorageUser=queuedbd
+***** ~String:~ The system user account we use to do our MariaDB job accounting via SlurmDBD.
+This is the user account SlurmDBD will execute as for authenticating and managing our MariaDB accounting.
+This setting replicates the similarly named setting [[StorageUser=queuedbd][StorageUser]] from slurmdbd.conf. The reason for the
+duplication is that slurm.conf's setting is read from the [[SlurmctldHost=srv-queue][SlurmctldHost]] node and the compute nodes by
+SlurmCtld and Slurmd respectively, while StorageUser is read only from slurmdbd.conf on the [[DbdHost=srv-queue][DbdHost]]
+node. See [[StorageUser=queuedbd][StorageUser]]
+**** JobCompType=jobcomp/mysql
+***** ~Case String:~ This setting allows us to policy where we want job completion notes to go.
+We put them into our MariaDB database, rather than putting them into text files, or writing bespoke
+scripts to handle job completions, etc. This fits in with wanting as much accounting as possible
+to go into one location.
+**** JobCompUser=queuedbd
+***** ~String:~ A system account which specifies the user we want Slurm to act as in handling job completion.
+We have made it the same as our [[AccountingStorageUser=queuedbd][AccountingStorageUser]]; setting it up this way allows SlurmDBD do double duty
+with both SQL job tracking/accounting as well as tracking job completion records.
+**** JobCompHost=srv-queue
+***** ~Case String:~ The hostname of the machine on which our job completion database is stored.
+In our case, as we are using SlurmDBD and MariaDB to do our jobcomp [[JobCompType=jobcomp/mysql][(1)]] as well as our normal
+accounting, so as with everything else it's located on srv-queue.
+See [[DbdHost=srv-queue][DbdHost:slurmdbd.conf]] . [[AccountingStorageHost=srv-queue][AccountingStorageHost:slurm.conf]] . [[StorageHost=srv-queue][StorageHost:slurmdbd.conf]]
+**** AccountingStoragePort=6819
+***** ~Int:~ The port on which the SlurmDBD listens for Slurmd and SlurmCtld to issue accounts to MariaDB.
+It is identical to the [[DbdPort=6819][DbdPort]] value located in slurmdbd.conf; the significance of the duplication is that
+SlurmDBD itself only runs on the [[DbdHost=srv-queue][DbdHost]] and only reads its configuration from slurmdbd.conf on that machine,
+while Slurmd and SlurmCtld read the AccountingStoragePort from slurm.conf on every other cluster machine.
+*AccountingStoragePort must be equal to DbdPort in slurmdbd.conf.*
+See [[DbdPort=6819][DbdPort:slurmdbd.conf]]
+**** AccountingStorageType=accounting_storage/slurmdbd
+***** ~Case String:~ This specifies to SlurmCtld the plugin to use for accounting storage.
+Another possible value is accounting_storage/mysql, which tells SlurmCtld to skip using SlurmDBD
+to authenticate database access with Munge and instead handle access authentication itself, which
+is a security concern because it requires SlurmCtld and _transitively all Slurmd slaves on every node_
+to individually Munge user credentials simply in order to perform logging functions such as log reads.
++Sad Trombone+
+See [[StorageType=accounting_storage/mysql][StorageType:slurmdbd.conf]]
+**** JobAcctGatherType=jobacct_gather/cgroup
+***** ~Case String:~ Specifies the plugin we want to use to gather accounting details on jobs.
+We want accounts gathering done via cgroups, as it allows us to have a more granular view of processes,
+and it also prevents process-consumed resources from escaping from accounting, e.g. we'll always know
+if a job decides hang onto something. *Be aware that changing this setting basically changes the contents
+of the network traffic between Slurmctld, Slurmd, and SlurmDBD.* As such any jobs which are on the queue
+if/when we modify this job will be adopted by Slurmstepd, a daemon which govern legacy-configured jobs
+through their various stages until completion. We shouldn't change this if any job steps are running.
+The cgroup plugin also provides additional accounting details over and above the default plugin.
+See [[JobAcctGatherFrequency=task=30,energy=60,network=0,filesystem=0][JobAcctGatherFrequency:slurm.conf]]
+****** To wit:
+******* =memory.usage_in_bytes:memory=
+Cgroup reports the memory usage in bytes of processes, jobs, and process trees.
+******* =rss:memory.stat=
+Cgroup reports the resident set size associated with individual process RAM.
+******* =cpu time,system time:cpu,cpuaccts=
+Cgroup reports on the cpu time and system time as known to the kernel.
+**** JobAcctGatherFrequency=task=30,energy=60,network=0,filesystem=0
+***** ~Tuple:~: This specifies the sampling frequences for our job accounting.
+Task accounting every 30 seconds via cgroup, energy accounting never because we don't use
+FreeIPMI,network accounting never because it relies on the InfiniBand plugin which we don't
+have InfiniBand, and filesystem accounting never because it depends on our use of the LUSTRE
+filesystem and accompanying plugin.
+See [[JobAcctGatherType=jobacct_gather/cgroup][JobAcctGatherType:slurm.conf]]
+**** Additional reading: [[https://slurm.schedmd.com/accounting.html][Accounting and Resource Limits]]
+*** Logging settings:
+**** LogTimeFormat=iso8601_ms
+***** ~String:~ Specifies the time format in which SlurmCtld and Slurmd stamp their logs.
+iso8601_ms is pretty self-explanatory, it's the ISO international time standard format
+with microsecond precision. Also comes without microseconds if you truncate it to iso8601.
+For reference, it is this format: _2018-08-10T14:22:12,8855_
+****** Some other options:
++rfc5424{_ms}:+ (IETF unix syslog stamp time (server log time))
++clock:+ (libc's clock() func time)
++thread_id:+ (libc's ctime() func time with the logging daemon's pid and tid appended).
+***** TODO figure out how to link to an identically named subheader under a different superheader.
+**** SlurmctldLogFile=/var/log/slurm/slurmctld.log
+***** ~Case String:~ This specifies where SlurmCtld stores its log files on the cluster control node.
+Pretty self-explanatory. We want to keep all our logs in the approximate place across our nodes.
+Different Slurm components should also keep their logs together. See [[SlurmCtldDebug=3][SlurmCtldDebug]]
+**** SlurmdLogFile=/var/log/slurm/slurmd.log
+***** ~Case String:~ This specifies where Slurmd stores its log files on the local compute node.
+As above, pretty self-explanatory. See [[SlurmdDebug=3][SlurmdDebug]]
+**** SlurmCtldDebug=9
+***** ~Int | String:~ Specifies the level of logging for the SlurmCtld queue master.
+Values go from 0 to 9; alternatively specifiable with the strings quiet, fatal, error,
+info, verbose, debug, and debug2 to debug5. Our setting, 3, specifies terse general
+informational messages; less than verbose but more than just errors.
+See [[DebugLevel:slurmdbd.conf]] . [[SlurmdDebug=3][SlurmdDebug]]
+**** SlurmdDebug=9
+***** ~Int | String:~ Specifies the level of logging for the Slurmd node slaves.
+Values go from 0 to 9; alternately specifiable with the strings quiet, fatal, error,
+info, verbose, debug, and debug2 to debug5. Our setting, 3, specifies terse general
+informational messages; less than verbose but more than just errors.
+See [[SlurmctldDebug=3][SlurmCtldDebug:slurm.conf]] . [[DebugLevel=3][DebugLevel:slurmdbd.conf]]
+*** Authentication settings:
+**** AuthType=auth/munge
+***** ~Case String:~ The plugin we use to perform authentication between the Slurm(Ctl)d(bd) components.
+This specifies the plugin we use for authenticatation between SlurmCtld and the its Slurmd
+node slaves. It also authenticates communication between SlurmCtld and SlurmDBD.
+See [[AuthType=auth/munge][AuthType:slurmdbd.conf]]
+****** TODO again, find out how to create two links to identical text fields located in different subheadings.
+**** CryptoType=crypto/munge
+***** ~Case String:~ This specifies the crypto tool that we use to sign job steps.
+We use Munge simply because it was designed expressly for this role. With this setting, job
+steps can be submitted to the Slurmd compute nodes verifiably, and jobs and job steps
+are adequately distinguished and uniquely associated with users and nodes.
+** slurmdbd.conf
+=slurmdbd.conf= is an ASCII text file which exists and is read /only on/ the SlurmDBD
+[[DbdHost=srv-queue][DbdHost]] and which specifies the way in which SlurmDBD is to configure itself. It /must
+not/ exist on other hosts/compute nodes.
+Additional reading: [[https://slurm.schedmd.com/slurmdbd.conf.html][slurmdbd.conf(5)]]
+*** Authentication settings:
+**** AuthType=auth/munge
+***** ~Case String:~ The plugin to use for authenticating access via SlurmDBD to the MariaDB database.
+We use Munge to authenticate simply because there are no other options and also
+because we use it to authenticate Slurmd and SlurmCtld job submission anyway.
+*SlurmDBD must not be running if we are going to change the value of this setting.*
+It must be stopped first and restarted after.
+**** AuthInfo=/var/run/munge/munge.socket.2
+***** ~Case String:~ The socket path of the Munged daemon with which SlurmDBD authenticates MariaDB access.
+This is the same socket slurmd itself uses to authenticate job submissions and other queue actions by default;
+we specify it here only because it is unclear from the official documentation whether SlurmDBD adequately
+defaults to use this. If we wanted to set up a special socket we would do it once here and once in slurm.conf.
+*** Generic Database Access settings:
+**** StorageType=accounting_storage/mysql
+***** ~Case String:~ This specifies the accounting_storage plugin that SlurmDBD uses.
+The value we have chosen is the only possible legal value at this time, as SlurmDBD's /only/
+function is to govern the accounting_storage/mysql plugin. For this reason, this value is
+strictly required to be present slurmdbd.conf. See [[AccountingStorageType=accounting_storage/slurmdbd][AccountingStorageType:slurm.conf]]
+**** CommitDelay=1
+***** ~Int:~ A  period in seconds before SlurmDBD allows further database insertions after some insert action.
+We use a one second period, though we are unlikely to have the level of database throughput
+needed to broach this refractory delay, there is little reason for the delay to be any longer.
+**** DbdHost=srv-queue
+***** ~String:~ This specifies the hostname name of the server the SlurmDBD accounting daemon runs.
+This is the same location as our AccountingStorageHost, as well as all of the other various slurm host
+values, since we run them all from srv-queue. This value is strictly required to be present in slurmdbd.conf.
+See [[AccountingStorageHost=srv-queue][AccountingStorageHost:slurm.conf]]
+**** StorageHost=srv-queue
+***** ~String:~ This specifies the hostname of the server where our MariaDB account database runs.
+It is semantically and in all ways to equivalent to the AccountingStorageHost setting in slurm.conf;
+the salient significance of the apparent duplication is that slurm.conf is read by Slurmd (on all
+compute nodes) and SlurmCtld (on our controller host), while slurmdbd.conf is read only by the
+SlurmDBD daemon itself. See [[AccountingStorageHost=srv-queue][AccountingStorageHost:slurm.conf]] . [[DbdHost=srv-queue][DbdHost:slurmdbd.conf]]
+**** DbdPort=6819
+***** ~Int:~ This specifies the network port on which the SlurmDBD accounting daemon listens for work.
+It is the same port as the AccountingStoragePort in slurm.conf; the salience of the duplication
+is that SlurmDBD only reads its configuration parameters from slurmdbd.conf on the [[DbdHost=srv-queue][DbdHost]],
+while AccountingStoragePort tells Slurmd (on the compute nodes) and SlurmCtld (on the controller
+host) where to contact SlurmDBD. *DbdPort must be equal to AccountingStoragePort.*
+See [[AccountingStoragePort=6819][AccountingStoragePort:slurm.conf]]
+**** PidFile=/var/run/slurm/slurmdbd.pid
+***** ~Case String:~ The filesystem path where SlurmDBD places its pid file.
+Exactly what it says on the tin. It would be surprising for this to be anywhere else.
+**** PluginDir=/usr/lib/slurm
+***** ~Case String:~ This specifies the filesystem path Slurm uses to attempt to find its plugins.
+The default is /usr/local/lib/slurm, but we use /lib/slurm because of the the internal structure
+of our deployable pack. This is not set in stone, it just slightly simplifies the bash script that
+sources the pack onto our machines.
+See [[PluginDir=/lib/slurm][PluginDir:slurm.conf]]
+***** TODO again, find out how to create two links to identical text fields located in different subheadings.
+**** SlurmUser=queued
+***** ~Case String:~ This specifies the user account under which SlurmCtld executes.
+*The user must exist* on every compute node and the head node and the [[DbdHost=srv-queue][DbdHost]] node
+/and/ *it must have the same effective UID on all nodes.* This duplicates the setting
+of the same name in slurm.conf; the salient difference is just that SlurmDBD reads the
+information from slurmdbd.conf on the DbdHost while Slurmctld and Slurmd read this
+from slurm.conf on the SlurmctldHost and all compute nodes. *This setting must be
+equal between slurm.conf and slurmdbd.conf.*
+See [[SlurmUser=queued][SlurmUser:slurm.conf]]
+**** StorageUser=queuedbd
+***** ~Case String:~ This is the user account name that SlurmDBD executes as on the [[DbdHost=srv-queue][DbdHost]] node.
+It replicates the similarly-named [[AccountingStorageUser=queuedbd][AccountingStorageUser]] setting from slurm.conf, indicating the
+expected user account for job accounting access and authentication to SlurmCtld and Slurmd on
+the SlurmctldHost and compute nodes as read from slurm.conf on those machines, and to SlurmDBD
+itself on the DbdHost. *This setting must be the same between slurm.conf and slurmdbd.conf.*
+See [[AccountingStorageUser=queuedbd][AccountingStorageUser:slurm.conf]]
+*** Logging settings:
+**** DebugLevel=9
+***** ~Int | String:~ Specifies the level of logging for the SlurmDBD accounting logs.
+As above values go from 0 to 9; alternately specifiable with the strings quiet, fatal, error, info, verbose,
+debug, and debug2 to debug5. Our setting, 3, specifies terse general informational messages; less than verbose
+but more than just errors. See [[SlurmctldDebug=3][SlurmCtldDebug:slurm.conf]] . [[SlurmdDebug=3][SlurmdDebug:slurm.conf]]
+**** LogFile=/var/log/slurm/slurmdbd.log
+***** ~Case Strings:~ This specifies where SlurmDBD stores its log files on the [[DbdHost=srv-queue][DbdHost]].
+This indicates the filesystem location where SlurmDBD stores its logs. We chose the same place
+for this as we did for [[SlurmctldLogFile=/var/log/slurm/slurmctld.log][SlurmctlLogFile]], so that the on srv-queue all logs will be available together.
+See [[SlurmctldLogFile=/var/log/slurm/slurmctld.log][SlurmctldLogFile:slurm.conf]]
+**** LogTimeFormat=iso8601_ms
+***** ~String:~ This specifies the time format in which SlurmDBD will stamp its logs.
+This value is sematically the same as the same-named value in slurm.conf, but
+this here it exclusively configures SlurmDBD. For reference, it is this format:
+_2018-08-10T14:22:12,8855_
+See [[LogTimeFormat=iso8601_ms][LogTimeFormat:slurm.conf]]
+***** Some other options:
++rfc5424{_ms}:+ (IETF unix syslog stamp time (server log time))
++clock:+ (libc's clock() func time)
++thread_id:+ (libc's ctime() func time with the logging daemon's pid and tid appended).
+** cgroup.conf settings:
+This is an ASCII conf file which is present on both [[SlurmctldHost=srv-queue][SlurmctldHost]] and the individual compute nodes.
+It specifies how the SlurmctlD and Slurmd daemons are to configure the cgroup related plugins.
+It /must/ be present and identical on all Slurm nodes in a cluster because it both allows Slurmd
+nodes to configure resource constaint and it allows SlurmCtld to perform sensible sheduling with
+regard to known node resource constraints.
+Additional reading: [[https://slurm.schedmd.com/cgroup.conf.html][cgroup.conf(5)]] . [[https://slurm.schedmd.com/cgroups.html][Cgroups Guide]]
+*** Generic cgroup settings:
+**** CgroupAutomount=yes
+***** ~Bool:~ Whether Slurm will attempt to mount cgroups if they are not currently mounted.
+The cgroups that we require should always be mounted already, but Slurm's plugin /will fail/ if
+if they require a cgroup *and* it unavailable at plugin load time *and* this setting is boolean no.
+**** CgroupMountpoint=/sys/fs/cgroup
+***** ~Case String:~ This specifies the path that Slurm daemons should checks for the cgroup hierarchy.
+This setting is also the setting Slurm defaults to, but I was having some trouble with it searching
+in the wrong locations, so I added it manually and it works as such.
+*** Task Constraint and Affinity settings:
+**** ConstrainCores=yes
+***** ~Bool:~ Indicates whether to use the cpuset control group to constrain CPU log subscription.
+The cpuset cgroup, located under /sys/fs/cgroup/cpuset, provides an interface to the Linux Kernel
+cpuset functionality, allowing Slurm to schedule jobs with resource access restrictions at the
+kernel level. Defaults to no, but we want this so that we can enforce queue resource limitations.
+**** ConstrainRAMSpace=yes
+***** ~Bool:~ Specifies whether cgroups will be used to constrain RAM usage.
+Defaults to no, but we want this, as we don't want jobs exceeding their memory resource on the
+nodes under any circumstances, as these nodes are also substantially our workstations. To get
+more specific, this setting interacts with ConstrainSwapSpace and the individual node settings
+found in slurm.conf. Setting this to yes doesn't modify the node memory settings from there, but
+it /does/ result in Slurm deploying cgroups to unitalerally and OOMkill jobs which exceed their
+memory constraints.
+****** Nota bene:
+Using this can adversely influence job throughput on nodes, as jobs aren't allowed to gobble RAM
+until they complete, and must restart or wait or, more saliently, swap. However, our queue is not
+so busy and it is more important that we preserve node usability on a day-to-day basis.
+Additional reading: [[https://slurm.schedmd.com/high_throughput.html][High Throughput Computing Administration Guide]]
+**** ConstrainSwapSpace=no
+***** ~Bool:~ Specifies whether we want to use cgroups to constrain swap usage.
+We don't want this (at least initially) because we want to place relatively hard constraints
+on physical memory subscription, while allowing queue jobs to expand into swap if necessary.
+Non-queue work should take precedence in terms of responsiveness (i.e. workstations should
+avoid giving up responsive physical memory and push the overhead of swap usage onto queue work).
+**** AllowedRAMSpace=50.0
+***** ~Float or Int:~ Specifies the percentage of available RAM that queue jobs are allowed access to.
+This is is either a float or an int. Defaults to 100 as an int, but we almost never want our nodes to
+use that much RAM. Jobs which exceed this value will be unable to subsribe new new memory, as the kernel
+will refuse to allocate access for those jobs.
+**** TaskAffinity=no
+***** ~Bool:~ Specifies whether cgroups are used to enforce resource affinity (the task/cgroup plugin).
+Affinity is whether jobs/job steps prefer to remain associated with their current logs/RAM over time.
+We do not use cgroups to enforce this as the devs recommends using a different plugin than task/cgroup
+for this purpose. Therefore, in slurm.conf, we have chained two plugins together, task/affinity and
+task/cgroup. This setting, combined with ConstrainCores=yes, allows us to tune which plugins we want
+to use to provide resource constraint (task/cgroup) and which to provide resource affinity (task/affinity).
+See [[TaskPlugin=task/affinity,task/cgroup][TaskPlugin:slurm.conf]]
+* Cluster & Queue
+** Clusters
+*** 
