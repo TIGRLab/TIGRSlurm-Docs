@@ -81,7 +81,7 @@ Once you've submitted a job you can check its status via the [`sacct`](https://s
 - `Account` will always be tigrlab on our local Kimel cluster
 - `AllocCPUS` is how many CPUs were given to the ask
 - `State` describes Job state and can either be `COMPLETED`, `RUNNING`, `PENDING`, or possibly `FAILED`
-- `Partition` tells you the [**partition**](### TIGRSLURM: the Kimel SLURM cluster) used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#### Directives: ####).
+- `Partition` tells you the [**partition**](#tigrslurm:-the-kimel-slurm-cluster) used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#directives:).
 
 Once the job `State` is `COMPLETED` (it'll take a minute), we can inspect the outputs - in this case in `/scratch/<your_user>/slurm_hello`:
 
