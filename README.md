@@ -1,5 +1,5 @@
 # Getting Started
-### The Kimel SLURM system
+### TIGRSLURM: the Kimel SLURM cluster
 
 Before using the queue it's useful to know what's available for you to use on the system. The queue consists of groups of computers called **partitions**:
 
@@ -9,13 +9,13 @@ STICK IN DIAGRAM OF QUEUE
 
 When you submit any job to our Kimel cluster, it goes to any one of the available partitions which you need to specify (moby is default). In general:
 
-- High moby - contains high performance computers
-- Low moby - contains mid-tier performance computers
-- Thunk - contains low performance computers
-- Moby - uses both High and Low moby computers
-- Cudansha - contains computers which have a usable GPU
+- high-moby - contains high performance computers
+- low-moby - contains mid-tier performance computers
+- thunk - contains low performance computers
+- moby - contains all the cluster's computers
+- cudansha - contains computers which have a usable GPU
 
-You can inspect which computers are available in each partition by opening up terminal and using `sinfo` which will display something like:
+You can inspect which computers are available in each partition by opening up a terminal emulator and using `[sinfo](https://slurm.schedmd.com/sinfo.html)` which will display something like:
 
 ```
 PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
@@ -28,8 +28,7 @@ high-moby    up   infinite      6    mix bayes,borg,deckard,hawking,noether,ogaw
 high-moby    up   infinite      1   idle downie
 ```
 
-Which gives you an idea of which partitions are available and more specifically the number of computers as well as their identities. For more details check out the SLURM documentation (LINK HERE). 
-
+Which gives you an idea of which partitions are available and more specifically the number of computers as well as their identities. For (a lot) more details, check out the official [SLURM Quick Start User Guide](https://slurm.schedmd.com/quickstart.html).
 
 ### How to use SLURM
 
@@ -146,14 +145,16 @@ In this script, we've used a series of directives to effectively delineate how t
 |:-----------------:|:-------------------------------:|:-------------------------------------:|
 | `--job-name`      | Give your job a name.           | Make it distinctive.                  |
 | `--ntasks`        | How many times should it run?   | Helpful for repetitive tasks.         |
-| `--cpus-per-task` | Allocate it CPU cores.            | How many will it *actually* use?      |
-| `--time`          | Allocate it a time limit.         | This is a *maximum* time.             |
-| `--partition`     | Allocate it to a partition.       | It will get higher priority here.     |
+| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?      |
+| `--time`          | Allocate it a time limit.       | This is a *maximum* time.             |
+| `--partition`     | Allocate it to a partition.     | It will get higher priority here.     |
 | `--output/error`  | The location of your log files. | *Always* in your scratch or projects. |
 
-[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in SLURM will be covered later in their own respective sections in more detail. For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job.
+[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in SLURM will be covered later in their own respective sections in more detail.
 
-If you allocate *too few* resources to your job, it may fail or work be slow. If you allocate *too many*, it may fail *even to start*, as the resources you requested might be unavailable.
+For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job. Directives such as these are resource caps, and cannot be exceeded.
+
+Therefore, if you allocate *too few* resources to your job, it may fail or work be slow. However, if on the o ther hand you allocate *too many* resources, it may fail *even to start*, as the resources you requested might be unavailable.
 
 #### Array Jobs ####
 
