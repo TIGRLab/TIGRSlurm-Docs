@@ -142,17 +142,14 @@ echo "Hello, this script ran on `hostname -s` on `date --iso`."
 
 In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's touch on each one briefly:
 
-The `job-name` directive ensures that this job's *name* will be distinctive and noticable, for example, in a large list of jobs.
-
-The `ntasks` directive specifies that in order for this job to be considered 'completed', the script must have run this many times on any computer at any time.
-
-The `cpus-per-task` directive specifies that each time this script runs on some machine, it is expected to use this many CPU cores. It is reasonably important to provide an accurate CPU count, as providing too few CPUs will slow it down or even kill it, while providing too many cores may prevent the job from running soon or at all
-
-The `time` directive indicates an estimated deadline by which the job is expected to finish. Like cpus-per-task, it is important for this to be correct, as a job which exceeds this time limit will be liable to be killed by SLURM, while a job which asks for too much time will be liable to wait a long while for other jobs to finish first.
-
-The `partition` directive allows you to specify which subset of the cluster's machines to assign your job to. Partitions are mildly important to assign, as different partitions provide maximum time limits and other constraints. On the other hand, if no partition is specified, your job may run anywhere but will have low priority.
-
-The `output` and `error` directives tell Slurm where to direct the log outputs of your script. **Always** direct the log outputs into globally available directories, either in your project or scratch directory.
+| directive     | meaning                         | important                             |
+|:-------------:|:-------------------------------:|:-------------------------------------:|
+| job-name      | Give your job a name.           | Make it distinctive!                  |
+| ntasks        | How many times should it run?   | Helpful for repetitive tasks.         |
+| cpus-per-task | Assign it CPU cores.            | How many will it *actually* use?      |
+| time          | Assign it a time limit.         | This is a *maximum* time!             |
+| partition     | Assign it to a partition.       | It will get higher priority here.     |
+| output/error  | The location of your log files. | *Always* in your scratch or projects. |
 
 [Resource Allocation](LINKHERE) and [Logging](LINKHERE) in Slurm will be covered later in their own respective sections in more detail. In the above example, we have certainly *over-served* this job; as 20 minutes and two cores are far greater than the resources required to execute simple echo, date, and hostname commands.
 
