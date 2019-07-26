@@ -112,3 +112,7 @@ scancel -u <your_user>
 ```
 
 Where the `-u` flag indicates `user`.
+
+###  Writing Slurm scripts ###
+
+To make use of Slurm, you may provide options known as *directives*. Here, we'll cover a few basic directives and their use in
