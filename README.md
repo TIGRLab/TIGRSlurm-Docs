@@ -113,6 +113,45 @@ scancel -u <your_user>
 
 Where the `-u` flag indicates `user`.
 
-###  Writing Slurm scripts ###
+###  Writing SLURM scripts ###
 
-To make use of Slurm, you may provide options known as *directives*. Here, we'll cover a few basic directives and their use in
+To make use of SLURM, you may provide options known as *directives*. Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within SLURM scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
+  * `--time` : for specifying time-to-completion
+  * `--job-name` : for naming jobs
+  * `--ntasks` : for specifying numbers of *job steps*
+  * `--cpus-per-task` : for allocating CPU resources
+  * `--array` : for specifying the dimensions of large jobs
+  * `--partition` : for specifying a partition
+
+If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with Sbatch. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example:
+
+#### An example: ####
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=script_test
+#SBATCH --ntasks=2
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:20:00
+#SBATCH --partition=high-moby
+#SBATCH --output=/projects/<your_name>/slurm_%A.out
+#SBATCH --error=/projects/<your_name>/slurm_%A.err
+
+echo "Hello, this script ran on `hostname -s` on `date --iso`."
+```
+
+In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's touch on each one briefly:
+
+The `job-name` directive ensures that this job's *name* will be distinctive and noticable, for example, in a large list of jobs.
+
+The `ntasks` directive specifies that in order for this job to be considered 'completed', the script must have run this many times on any computer at any time.
+
+The `cpus-per-task` directive specifies that each time this script runs on some machine, it is expected to use this many CPU cores. It is reasonably important to provide an accurate processor count, as providing too few CPUs will slow it down or even kill it, while providing too many cores may prevent the job from running soon or at all
+
+The `time` directive indicates an estimated deadline by which the job is expected to finish. Like cpus-per-task, it is important for this to be correct, as a job which exceeds this time limit will be liable to be killed by SLURM, while a job which asks for too much time will be liable to wait a long while for other jobs to finish first.
+
+The `partition` directive allows you to specify which subset of the cluster's machines to assign your job to. Partitions are mildly important to assign, as different partitions provide, for example, maximum time limits and other constraints. On the other hand, if no partition is specified, your job may run anywhere, but will have low priority.
+
+The `output` and `error` directives tell Slurm where to direct the log outputs of your script. **Always** direct the log outputs into globally available directories, either in your project or scratch directory.
+
+[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in Slurm will be covered later in their own respective sections.
