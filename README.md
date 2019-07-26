@@ -4,12 +4,12 @@
 Before using the queue it's useful to know what's available for you to use on the system. The queue consists of groups of computers called **partitions**:
 
 ```
-STICK IN DIAGRAM OF QUEUE 
+STICK IN DIAGRAM OF QUEUE
 ```
 
 When you submit any job to our Kimel cluster, it goes to any one of the available partitions which you need to specify (moby is default). In general:
 
-- High moby - contains high performance computers 
+- High moby - contains high performance computers
 - Low moby - contains mid-tier performance computers
 - Thunk - contains low performance computers
 - Moby - uses both High and Low moby computers
@@ -39,7 +39,7 @@ In order to run a SLURM job, the first thing you will need is a job script. This
 ```bash
 #!/bin/bash
 
-# Do nothing for a minute 
+# Do nothing for a minute
 sleep 60
 
 #Output a message
@@ -64,7 +64,7 @@ You will see a message saying:
 Submitted batch job <jobid>
 ```
 
-Where `jobid` is a number. 
+Where `jobid` is a number.
 
 #### Inspecting your first job
 
@@ -115,7 +115,7 @@ Where the `-u` flag indicates `user`.
 
 ###  Writing SLURM scripts ###
 
-To make use of SLURM, you may provide options known as *directives*. Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within SLURM scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
+To make use of SLURM, you may provide options known as *[sbatch directives](https://slurm.schedmd.com/sbatch.html)*. Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within SLURM scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
   * `--time` : for specifying time-to-completion
   * `--job-name` : for naming jobs
   * `--ntasks` : for specifying numbers of *job steps*
@@ -123,9 +123,9 @@ To make use of SLURM, you may provide options known as *directives*. Here, we'll
   * `--array` : for specifying the dimensions of large jobs
   * `--partition` : for specifying a partition
 
-If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with Sbatch. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example:
+If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with Sbatch. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example.
 
-#### An example: ####
+#### Directives, an example: ####
 
 ```bash
 #!/bin/bash
@@ -146,12 +146,20 @@ The `job-name` directive ensures that this job's *name* will be distinctive and 
 
 The `ntasks` directive specifies that in order for this job to be considered 'completed', the script must have run this many times on any computer at any time.
 
-The `cpus-per-task` directive specifies that each time this script runs on some machine, it is expected to use this many CPU cores. It is reasonably important to provide an accurate processor count, as providing too few CPUs will slow it down or even kill it, while providing too many cores may prevent the job from running soon or at all
+The `cpus-per-task` directive specifies that each time this script runs on some machine, it is expected to use this many CPU cores. It is reasonably important to provide an accurate CPU count, as providing too few CPUs will slow it down or even kill it, while providing too many cores may prevent the job from running soon or at all
 
 The `time` directive indicates an estimated deadline by which the job is expected to finish. Like cpus-per-task, it is important for this to be correct, as a job which exceeds this time limit will be liable to be killed by SLURM, while a job which asks for too much time will be liable to wait a long while for other jobs to finish first.
 
-The `partition` directive allows you to specify which subset of the cluster's machines to assign your job to. Partitions are mildly important to assign, as different partitions provide, for example, maximum time limits and other constraints. On the other hand, if no partition is specified, your job may run anywhere, but will have low priority.
+The `partition` directive allows you to specify which subset of the cluster's machines to assign your job to. Partitions are mildly important to assign, as different partitions provide maximum time limits and other constraints. On the other hand, if no partition is specified, your job may run anywhere but will have low priority.
 
 The `output` and `error` directives tell Slurm where to direct the log outputs of your script. **Always** direct the log outputs into globally available directories, either in your project or scratch directory.
 
-[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in Slurm will be covered later in their own respective sections.
+[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in Slurm will be covered later in their own respective sections in more detail. In the above example, we have certainly *over-served* this job; as 20 minutes and two cores are far greater than the resources required to execute simple echo, date, and hostname commands.
+
+Note that this does not mean that this script will *actually run* for 20 minutes or *actually use* 2 CPU cores. Instead, these directives are a *prediction* of expected requirements. However, since the predictive nature of these directives is used by SLURM to schedule your job alongside possibly many others in an effort to provide equitable service to all users, SLURM will *de-prioritise* large, expensive jobs in favour of smaller, inexpensive jobs.
+
+What this means is that, in practice, your goal when writing a SLURM script should be to assign the smallest number of CPUs and the smallest amount of time to your job that you can manage, without under-estimating your job's *actual* requirements. The smaller your job's footprint, the sooner it will run, and the faster it will be able to complete. In the following section, we'll provide another example which illustrates the use of the `array` directive, which is peculiarly useful for large jobs, but also generally poorly understood by new users.
+
+#### Array Jobs ####
+
+An **[array job](https://slurm.schedmd.com/job_array.html)** is a special kind of SLURM job which allows you to specify that an identical job script should be exected with some non-identical input or options. In an array job, the `--array` directive is used
