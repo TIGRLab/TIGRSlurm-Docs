@@ -15,7 +15,7 @@ When you submit any job to our Kimel cluster, it goes to any one of the availabl
 - moby - contains all the cluster's computers
 - cudansha - contains computers which have a usable GPU
 
-You can inspect which computers are available in each partition by opening up a terminal emulator and using `[sinfo](https://slurm.schedmd.com/sinfo.html)` which will display something like:
+You can inspect which computers are available in each partition by opening up a terminal emulator and using [`sinfo`](https://slurm.schedmd.com/sinfo.html) which will display something like:
 
 ```
 PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
@@ -51,7 +51,7 @@ hostname >> /scratch/<your_name>/slurm_hello
 
 This script will write to a file with the path: `/scratch/<your_name>/slurm_hello`. 
 
-We can submit this job to the SLURM queue at Kimel by opening up terminal, going to the directory containing and the script and entering:
+We can submit this job to the SLURM queue at Kimel by opening up the terminal, going to the directory containing and the script and entering:
 
 ```bash
 sbatch ./hello_slurm.sh
@@ -67,7 +67,7 @@ Where `jobid` is a number.
 
 #### Inspecting your first job
 
-Once you've submitted a job you can check its status via the `sacct` command in terminal. `sacct` will only show your jobs and what their statuses are. For example you might see something like:
+Once you've submitted a job you can check its status via the [`sacct`](https://slurm.schedmd.com/sacct.html) command in the terminal. `sacct` will only show your jobs and what their statuses are, unless you specify otherwise using the `-u` option with another username. For example you might see something like:
 ```
        JobID    JobName  Partition    Account  AllocCPUS      State ExitCode
 ------------ ---------- ---------- ---------- ---------- ---------- --------
@@ -80,10 +80,10 @@ Once you've submitted a job you can check its status via the `sacct` command in 
 - `JobName` is the name given to the job. By default it is the name of the script but see `point to directives` for details on how to customize this
 - `Account` will always be tigrlab on our local Kimel cluster
 - `AllocCPUS` is how many CPUs were given to the ask
-- `State` describes Job state and can either be `COMPLETED`, `RUNNING`, or `PENDING` 
-- `Partition` tells you the **partition**(LINK) used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using Directives (LINK)
+- `State` describes Job state and can either be `COMPLETED`, `RUNNING`, `PENDING`, or possibly `FAILED`
+- `Partition` tells you the [**partition**](### TIGRSLURM: the Kimel SLURM cluster) used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#### Directives: ####).
 
-Once the job `State` is completed (it'll take a minute), we can inspect the outputs - in this case in `/scratch/<your_user>/slurm_hello`:
+Once the job `State` is `COMPLETED` (it'll take a minute), we can inspect the outputs - in this case in `/scratch/<your_user>/slurm_hello`:
 
 ```
 cat scratch/<your_user>/slurm_hello
@@ -92,7 +92,7 @@ cat scratch/<your_user>/slurm_hello
 > bayes.camhres.ca
 ```
 
-As you can see, a computer from the Kimel lab has run your script for you (it could be your own too!). 
+As you can see, a computer from the Kimel lab has run your script for you (it could be your own too!).
 
 A consequence of this is that if you need your job to use a file, **it must be accessible by all computers in the lab!**. If isn't the other computer will fail to find the file and the job will crash. See **WHY IS MY JOB FAILING** for more pitfalls!
 
@@ -110,7 +110,7 @@ Or if you want to cancel *all your jobs*:
 scancel -u <your_user>
 ```
 
-Where the `-u` flag indicates `user`.
+Where the `-u` flag indicates `user`, as it does for `sacct` as well.
 
 ###  Writing SLURM scripts ###
 
@@ -124,7 +124,7 @@ To make use of SLURM, you may provide options known as *[sbatch directives](http
 
 If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with Sbatch. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example.
 
-#### Directives, an example: ####
+#### Directives: ####
 
 ```bash
 #!/bin/bash
@@ -139,7 +139,7 @@ If these look like options that may be passed on the command line, that's becaus
 echo "Hello, this script ran on `hostname -s` on `date --iso`."
 ```
 
-In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's touch on each one briefly:
+In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why:
 
 | directive         | meaning                         | important                             |
 |:-----------------:|:-------------------------------:|:-------------------------------------:|
