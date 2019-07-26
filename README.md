@@ -142,20 +142,18 @@ echo "Hello, this script ran on `hostname -s` on `date --iso`."
 
 In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's touch on each one briefly:
 
-| directive     | meaning                         | important                             |
-|:-------------:|:-------------------------------:|:-------------------------------------:|
-| job-name      | Give your job a name.           | Make it distinctive!                  |
-| ntasks        | How many times should it run?   | Helpful for repetitive tasks.         |
-| cpus-per-task | Assign it CPU cores.            | How many will it *actually* use?      |
-| time          | Assign it a time limit.         | This is a *maximum* time!             |
-| partition     | Assign it to a partition.       | It will get higher priority here.     |
-| output/error  | The location of your log files. | *Always* in your scratch or projects. |
+| directive         | meaning                         | important                             |
+|:-----------------:|:-------------------------------:|:-------------------------------------:|
+| `--job-name`      | Give your job a name.           | Make it distinctive.                  |
+| `--ntasks`        | How many times should it run?   | Helpful for repetitive tasks.         |
+| `--cpus-per-task` | Allocate it CPU cores.            | How many will it *actually* use?      |
+| `--time`          | Allocate it a time limit.         | This is a *maximum* time.             |
+| `--partition`     | Allocate it to a partition.       | It will get higher priority here.     |
+| `--output/error`  | The location of your log files. | *Always* in your scratch or projects. |
 
-[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in Slurm will be covered later in their own respective sections in more detail. In the above example, we have certainly *over-served* this job; as 20 minutes and two cores are far greater than the resources required to execute simple echo, date, and hostname commands.
+[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in SLURM will be covered later in their own respective sections in more detail. For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job.
 
-Note that this does not mean that this script will *actually run* for 20 minutes or *actually use* 2 CPU cores. Instead, these directives are a *prediction* of expected requirements. However, since the predictive nature of these directives is used by SLURM to schedule your job alongside possibly many others in an effort to provide equitable service to all users, SLURM will *de-prioritise* large, expensive jobs in favour of smaller, inexpensive jobs.
-
-What this means is that, in practice, your goal when writing a SLURM script should be to assign the smallest number of CPUs and the smallest amount of time to your job that you can manage, without under-estimating your job's *actual* requirements. The smaller your job's footprint, the sooner it will run, and the faster it will be able to complete. In the following section, we'll provide another example which illustrates the use of the `array` directive, which is peculiarly useful for large jobs, but also generally poorly understood by new users.
+If you allocate *too few* resources to your job, it may fail or work be slow. If you allocate *too many*, it may fail *even to start*, as the resources you requested might be unavailable.
 
 #### Array Jobs ####
 
