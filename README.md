@@ -122,11 +122,11 @@ To make use of SLURM, you may provide options known as *[sbatch directives](http
   * `--array` : for specifying the dimensions of large jobs
   * `--partition` : for specifying a partition
 
-If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with Sbatch. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example.
+If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with `sbatch`. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example and place the directives inside the script.
 
 #### Directives: ####
 
-```bash
+``` bash
 #!/bin/bash
 #SBATCH --job-name=script_test
 #SBATCH --ntasks=2
@@ -144,18 +144,41 @@ In this script, we've used a series of directives to effectively delineate how t
 | directive         | meaning                         | important                             |
 |:-----------------:|:-------------------------------:|:-------------------------------------:|
 | `--job-name`      | Give your job a name.           | Make it distinctive.                  |
-| `--ntasks`        | How many times should it run?   | Helpful for repetitive tasks.         |
+| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.          |
 | `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?      |
 | `--time`          | Allocate it a time limit.       | This is a *maximum* time.             |
 | `--partition`     | Allocate it to a partition.     | It will get higher priority here.     |
 | `--output/error`  | The location of your log files. | *Always* in your scratch or projects. |
 
+For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job. Directives such as these are *caps*, and cannot be exceeded.
+
+Therefore, if you allocate *too few* resources to your job, it may fail or work may be slow. However, if on the other hand you allocate *too many* resources, it may fail *even to start*, as the resources you requested might be unavailable.
+
+A good rule when writing these directives is this:
+**For any set of resources specified by directives, you are limiting yourself to machines possessing all of them.**
+
+Ask for too many CPUs, too much RAM, or a GPU, and you're shrinking the number of machines eligible to run your job.
+
 [Resource Allocation](LINKHERE) and [Logging](LINKHERE) in SLURM will be covered later in their own respective sections in more detail.
-
-For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job. Directives such as these are resource caps, and cannot be exceeded.
-
-Therefore, if you allocate *too few* resources to your job, it may fail or work be slow. However, if on the o ther hand you allocate *too many* resources, it may fail *even to start*, as the resources you requested might be unavailable.
 
 #### Array Jobs ####
 
-An **[array job](https://slurm.schedmd.com/job_array.html)** is a special kind of SLURM job which allows you to specify that an identical job script should be exected with some non-identical input or options. In an array job, the `--array` directive is used
+An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of SLURM job which allows you to specify that an identical job script should be exected with some non-identical input or parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=1-250`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
+
+``` bash
+#!/bin/bash
+#SBATCH --job-name=slurm_array_test
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=01:00:00
+#SBATCH --partition=low-moby
+#SBATCH --array=1-250%10
+#SBATCH --output=/projects/<your_user>/logs/%x_%A_%a.out
+#SBATCH --error=/projects/<your_user>/logs/%x_%A_%a.err
+
+slurmarray=(`seq 1 250`)
+
+echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
+```
+
+This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on.
