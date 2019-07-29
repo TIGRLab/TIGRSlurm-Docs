@@ -1,5 +1,5 @@
 # Getting Started
-### TIGRSLURM: the Kimel SLURM cluster
+### TIGRSlurm: the Kimel Slurm cluster
 
 Before using the queue it's useful to know what's available for you to use on the system. The queue consists of groups of computers called **partitions**:
 
@@ -28,12 +28,12 @@ high-moby    up   infinite      6    mix bayes,borg,deckard,hawking,noether,ogaw
 high-moby    up   infinite      1   idle downie
 ```
 
-Which gives you an idea of which partitions are available and more specifically the number of computers as well as their identities. For (a lot) more details, check out the official [SLURM Quick Start User Guide](https://slurm.schedmd.com/quickstart.html).
+Which gives you an idea of which partitions are available and more specifically the number of computers as well as their identities. For (a lot) more details, check out the Slurm official [Quick Start User Guide](https://slurm.schedmd.com/quickstart.html).
 
-### How to use SLURM
+### How to use Slurm
 
 #### Submitting your first job
-In order to run a SLURM job, the first thing you will need is a job script. This can be *in any kind of language* such as Bash, Python, MATLAB, or R. In this section we'll stick with Bash for simplicity. Suppose that we write up a text file called `hello_slurm.sh` with the following contents:
+In order to run a Slurm job, the first thing you will need is a job script. This can be *in any kind of language* such as Bash, Python, MATLAB, or R. In this section we'll stick with Bash for simplicity. Suppose that we write up a text file called `hello_slurm.sh` with the following contents:
 
 ```bash
 #!/bin/bash
@@ -41,20 +41,20 @@ In order to run a SLURM job, the first thing you will need is a job script. This
 # Do nothing for a minute
 sleep 60
 
-#Output a message
+# Output a message
 echo "Hello world!" > /scratch/<your_name>/slurm_hello
 
-#Print out which computer is running your job
+# Print out which computer is running your job
 hostname >> /scratch/<your_name>/slurm_hello
 
 ```
 
 This script will write to a file with the path: `/scratch/<your_name>/slurm_hello`. 
 
-We can submit this job to the SLURM queue at Kimel by opening up the terminal, going to the directory containing and the script and entering:
+We can submit this job to the Slurm queue at Kimel by opening up the terminal, going to the directory containing the script and entering:
 
 ```bash
-sbatch ./hello_slurm.sh
+sbatch hello_slurm.sh
 ```
 
 You will see a message saying:
@@ -81,20 +81,20 @@ Once you've submitted a job you can check its status via the [`sacct`](https://s
 - `Account` will always be tigrlab on our local Kimel cluster
 - `AllocCPUS` is how many CPUs were given to the ask
 - `State` describes Job state and can either be `COMPLETED`, `RUNNING`, `PENDING`, or possibly `FAILED`
-- `Partition` tells you the [**partition**](#tigrslurm:-the-kimel-slurm-cluster) used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#directives:).
+- `Partition` tells you the partition used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#directives:).
 
-Once the job `State` is `COMPLETED` (it'll take a minute), we can inspect the outputs - in this case in `/scratch/<your_user>/slurm_hello`:
+Once the job `State` is `COMPLETED` (it'll take a minute due to `sleep`), we can inspect the outputs - in this case in `/scratch/<your_name>/slurm_hello`:
 
 ```
-cat scratch/<your_user>/slurm_hello
+cat scratch/<your_name>/slurm_hello
 
 > Hello world!
 > bayes.camhres.ca
 ```
 
-As you can see, a computer from the Kimel lab has run your script for you (it could be your own too!).
+As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own). However, Slurm provides no guarantee that it will run on any *specific* machine unless you exactly request one. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
 
-A consequence of this is that if you need your job to use a file, **it must be accessible by all computers in the lab!**. If isn't the other computer will fail to find the file and the job will crash. See **WHY IS MY JOB FAILING** for more pitfalls!
+A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!**. If it isn't, the job's machine will fail to find the file and the job will crash. See **WHY IS MY JOB FAILING** for more pitfalls!
 
 #### Cancelling your Job
 
@@ -107,14 +107,14 @@ scancel <jobID1> <jobID2> <jobID3> ...
 Or if you want to cancel *all your jobs*:
 
 ```
-scancel -u <your_user>
+scancel -u <your_name>
 ```
 
 Where the `-u` flag indicates `user`, as it does for `sacct` as well.
 
-###  Writing SLURM scripts ###
+###  Writing Slurm scripts ###
 
-To make use of SLURM, you may provide options known as [*sbatch directives*](https://slurm.schedmd.com/sbatch.html). Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within SLURM scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
+To make good use of Slurm, you may provide options known as [*sbatch directives*](https://slurm.schedmd.com/sbatch.html). Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within Slurm scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
   * `--time` : for specifying time-to-completion
   * `--job-name` : for naming jobs
   * `--ntasks` : for specifying numbers of *job steps*
@@ -123,7 +123,7 @@ To make use of SLURM, you may provide options known as [*sbatch directives*](htt
   * `--partition` : for specifying a partition
   * `--gres` : for special resource requirements
 
-If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with `sbatch`, as in `sbatch --partition=low-moby my-script.sh`. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example and place the directives inside the script.
+If these look like options that may be passed on the command line, that's because the are. All Slurm directives are equivalent to command line options, and may be passed on the command line when you call a Slurm script with `sbatch`, as in `sbatch --partition=low-moby my-script.sh`. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example and place the directives inside the script.
 
 #### Directives: ####
 
@@ -143,19 +143,19 @@ echo "Hello, this script ran on `hostname -s` on `date --iso`."
 
 In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why:
 
-| directive         | meaning                         | important                                |
-|:-----------------:|:-------------------------------:|:----------------------------------------:|
-| `--job-name`      | Give your job a name.           | Make it distinctive.                     |
-| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.             |
-| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?         |
-| `--gres`          | Request special resources.      | Does your job have special requirements? |
-| `--time`          | Allocate it a time limit.       | This is a *maximum* time.                |
-| `--partition`     | Allocate it to a partition.     | It will get higher priority here.        |
-| `--output/error`  | The location of your log files. | *Always* in your scratch or projects.    |
+| directive         | meaning                         | important                             |
+|:-----------------:|:-------------------------------:|:-------------------------------------:|
+| `--job-name`      | Give your job a name.           | Make it distinctive.                  |
+| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.          |
+| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?      |
+| `--gres`          | Request special resources.      | Does your job need special resources? |
+| `--time`          | Allocate it a time limit.       | This is a *maximum* time.             |
+| `--partition`     | Allocate it to a partition.     | It will get higher priority here.     |
+| `--output/error`  | The location of your log files. | *Always* in your scratch or projects. |
 
-For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job. Directives such as these are *caps*, and cannot be exceeded.
+For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *caps*, and cannot be exceeded once the job has started.
 
-Therefore, if you allocate *too few* resources to your job, it may fail to work or may be slow. However, the same is true of allocating *too many* resources; if your job is too large, the SLURM scheduler may believe that no machine in the cluster is ready to satisfy its requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
+Therefore, if you allocate *too few* resources to your job, it may fail to work or may be slow. However, the same is true of allocating *too many* resources; if your job is too large, the Slurm scheduler may believe that no machine in the cluster is ready to satisfy its requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
 
 For example, let's say you ask for the following resources:
 
@@ -165,7 +165,7 @@ For example, let's say you ask for the following resources:
 #SBATCH --time=00:20:00
 ```
 
-In this case, one might *expect* to get access to 16 of the lab's 32 machines, since lab machines generally donate approximately half of their resources, and 16 of the lab's machines have at least 16 **total** CPU cores.
+In this case, one might *expect* to get access to 16 of the lab's 32 machines, since lab machines generally donate approximately half of their resources, and 16 of the lab's machines have at least 16 **total** CPU cores
 
 In reality, though, you would only get 8 machines, because via the `gres` directive, you're also asking for machines willing to donate **at least** 32,000 megabytes (i.e. 32GB) of RAM, and not all 16 core machines have that much to give.
 
@@ -185,7 +185,7 @@ Furthermore, if you request the following:
 #SBATCH --time=2-12:00:00
 ```
 
-Which is a requested time limit of 2 1/2 days, you will in fact *get zero machines and your job will never start*, since by definition, *no machines in low-moby are willing to run jobs longer than 32h*. In such situations, you'll receive a notification like the following:
+Which is a requested time limit of 2 1/2 days, you will in fact *get zero machines and your job will never start*, since, as you can see by running the `sinfo` command, *machines in low-moby are unwilling to run jobs longer than 32h*. In such situations, you'll receive a notification like the following:
 
 ``` bash
 sbatch: error: Unable to allocate resources: Requested node configuration is not available
@@ -194,30 +194,37 @@ sbatch: error: Unable to allocate resources: Requested node configuration is not
 Because the cluster as a whole does not possess any subset of nodes satisfying all of your provided directives.
 
 The rule when writing these directives is thus the following:
-**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.**
-Ask for too many CPUs, too much RAM, or a GPU, and you're shrinking the number of machines eligible to run your job.
-*Ask for the smallest amount that works!*
+**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM. Ask for the smallest amount of resources that works!**
 
-Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [gres](LINKHERE) in SLURM will be covered later in their own respective sections in more detail.
+Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [GRES](LINKHERE) in Slurm will be covered later in their own respective sections in more detail.
 
 #### Array Jobs ####
 
-An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of SLURM job which allows you to specify that an identical job script should be exected with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=1-250`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
+An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=1-250`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
 
 ``` bash
 #!/bin/bash
 #SBATCH --job-name=slurm_array_test
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=1
 #SBATCH --time=01:00:00
 #SBATCH --partition=low-moby
 #SBATCH --array=1-250%10
-#SBATCH --output=/projects/<your_user>/logs/%x_%A_%a.out
-#SBATCH --error=/projects/<your_user>/logs/%x_%A_%a.err
+#SBATCH --output=/projects/kwitczak/logs/%x_%A_%a.out
+#SBATCH --error=/projects/kwitczak/logs/%x_%A_%a.err
 
 slurmarray=(`seq 1 250`)
 
 echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
 ```
 
-This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time SLURM runs this script, on whichever compute node, it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. By placing this variable into a `"${bash_array[$JUST_LIKE_SO]}"`, it allows you to individually substitute any datum you might want from the array.
+This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script, on whichever compute node, it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. By placing this variable into a `"${bash_array[$JUST_LIKE_SO]}"`, it allows you to individually substitute any datum you might want from the array.
+
+This works for anything. Consider the following:
+
+``` bash
+subjects=(`cat $mydirectory/subjects.txt`)
+### Do some stuff to "${subjects[$SLURM_ARRAY_TASK_ID]}" here...
+echo "Subject '${subjects[$SLURM_ARRAY_TASK_ID]}' was processed on `hostname -s`"
+```
+
