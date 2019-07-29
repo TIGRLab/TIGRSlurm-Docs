@@ -150,15 +150,15 @@ echo "Hello, this script ran on `hostname -s` on `date --iso`."
 
 In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why:
 
-| directive         | meaning                         | important                             |
-|:-----------------:|:-------------------------------:|:-------------------------------------:|
-| `--job-name`      | Give your job a name.           | Make it distinctive.                  |
-| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.          |
-| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?      |
-| `--mem-per-cpu`   | Allocate it memory.             | How much does it need per CPU?        |
-| `--time`          | Allocate it a time limit.       | This is a *maximum* time.             |
-| `--partition`     | Allocate it to a partition.     | It will get higher priority here.     |
-| `--output/error`  | The location of your log files. | *Always* in your scratch or projects. |
+| directive          | short     | meaning                         | important                             |
+|:------------------:|:---------:|:-------------------------------:|:-------------------------------------:|
+| `--job-name`       | `-J`      | Give your job a name.           | Make it distinctive.                  |
+| `--ntasks`         | `-n`      | How many times should it run?   | Helpful for repetitive jobs.          |
+| `--cpus-per-task`  | `-c`      | Allocate it CPU cores.          | How many will it *actually* use?      |
+| `--mem-per-cpu`    | n/a       | Allocate it memory.             | How much does it need per CPU?        |
+| `--time`           | `-t`      | Allocate it a time limit.       | This is a *maximum* time.             |
+| `--partition`      | `-p`      | Allocate it to a partition.     | It will get higher priority here.     |
+| `--output`/`error` | `-o`/`-e` | The location of your log files. | *Always* in your scratch or projects. |
 
 For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
 
