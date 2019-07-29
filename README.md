@@ -150,15 +150,16 @@ echo "Hello, this script ran on `hostname -s` on `date --iso`."
 
 In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why:
 
-| directive          | short     | meaning                         | important                             |
-|:------------------:|:---------:|:-------------------------------:|:-------------------------------------:|
-| `--job-name`       | `-J`      | Give your job a name.           | Make it distinctive.                  |
-| `--ntasks`         | `-n`      | How many times should it run?   | Helpful for repetitive jobs.          |
-| `--cpus-per-task`  | `-c`      | Allocate it CPU cores.          | How many will it *actually* use?      |
-| `--mem-per-cpu`    | n/a       | Allocate it memory.             | How much does it need per CPU?        |
-| `--time`           | `-t`      | Allocate it a time limit.       | This is a *maximum* time.             |
-| `--partition`      | `-p`      | Allocate it to a partition.     | It will get higher priority here.     |
-| `--output`/`error` | `-o`/`-e` | The location of your log files. | *Always* in your scratch or projects. |
+| directive          | short     | meaning                         | important                                  |
+|:------------------:|:---------:|:-------------------------------:|:------------------------------------------:|
+| `--job-name`       | `-J`      | Give your job a name.           | Make it distinctive.                       |
+| `--ntasks`         | `-n`      | How many processes it will run. | Useful jobs with for multiple large steps. |
+| `--cpus-per-task`  | `-c`      | Allocate it CPU cores.          | How many will it *actually* use?           |
+| `--mem-per-cpu`    | n/a       | Allocate it memory.             | How much does it need per CPU?             |
+| `--time`           | `-t`      | Allocate it a time limit.       | This is a *maximum* time.                  |
+| `--partition`      | `-p`      | Allocate it to a partition.     | It will get higher priority here.          |
+| `--output`/`error` | `-o`/`-e` | The location of your log files. | *Always* in your scratch or projects.      |
+| `--gres`           | n/a       | Allocate special resources.     | Request important resources.               |
 
 For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
 
@@ -210,7 +211,7 @@ Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [GRES](LINKHERE)
 
 #### Array Jobs ####
 
-An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=0-249`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
+An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=0-249`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example:
 
 ``` bash
 #!/bin/bash
