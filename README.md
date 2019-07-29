@@ -143,15 +143,15 @@ echo "Hello, this script ran on `hostname -s` on `date --iso`."
 
 In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why:
 
-| directive         | meaning                         | important                              |
-|:-----------------:|:-------------------------------:|:--------------------------------------:|
-| `--job-name`      | Give your job a name.           | Make it distinctive.                   |
-| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.           |
-| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?       |
-| `--gres`          | Request special resources.      | Do your job have special requirements? |
-| `--time`          | Allocate it a time limit.       | This is a *maximum* time.              |
-| `--partition`     | Allocate it to a partition.     | It will get higher priority here.      |
-| `--output/error`  | The location of your log files. | *Always* in your scratch or projects.  |
+| directive         | meaning                         | important                                |
+|:-----------------:|:-------------------------------:|:----------------------------------------:|
+| `--job-name`      | Give your job a name.           | Make it distinctive.                     |
+| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.             |
+| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?         |
+| `--gres`          | Request special resources.      | Does your job have special requirements? |
+| `--time`          | Allocate it a time limit.       | This is a *maximum* time.                |
+| `--partition`     | Allocate it to a partition.     | It will get higher priority here.        |
+| `--output/error`  | The location of your log files. | *Always* in your scratch or projects.    |
 
 For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job. Directives such as these are *caps*, and cannot be exceeded.
 
