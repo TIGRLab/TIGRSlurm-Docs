@@ -114,15 +114,16 @@ Where the `-u` flag indicates `user`, as it does for `sacct` as well.
 
 ###  Writing SLURM scripts ###
 
-To make use of SLURM, you may provide options known as *[sbatch directives](https://slurm.schedmd.com/sbatch.html)*. Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within SLURM scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
+To make use of SLURM, you may provide options known as [*sbatch directives*](https://slurm.schedmd.com/sbatch.html). Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within SLURM scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
   * `--time` : for specifying time-to-completion
   * `--job-name` : for naming jobs
   * `--ntasks` : for specifying numbers of *job steps*
   * `--cpus-per-task` : for allocating CPU resources
   * `--array` : for specifying the dimensions of large jobs
   * `--partition` : for specifying a partition
+  * `--gres` : for special resource requirements
 
-If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with `sbatch`. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example and place the directives inside the script.
+If these look like options that may be passed on the command line, that's because the are. All SLURM directives are equivalent to command line options, and may be passed on the command line when you call a SLURM script with `sbatch`, as in `sbatch --partition=low-moby my-script.sh`. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example and place the directives inside the script.
 
 #### Directives: ####
 
@@ -131,6 +132,7 @@ If these look like options that may be passed on the command line, that's becaus
 #SBATCH --job-name=script_test
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=2
+#SBATCH --gres=mem:8K
 #SBATCH --time=00:20:00
 #SBATCH --partition=high-moby
 #SBATCH --output=/projects/<your_name>/slurm_%A.out
@@ -141,14 +143,15 @@ echo "Hello, this script ran on `hostname -s` on `date --iso`."
 
 In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why:
 
-| directive         | meaning                         | important                             |
-|:-----------------:|:-------------------------------:|:-------------------------------------:|
-| `--job-name`      | Give your job a name.           | Make it distinctive.                  |
-| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.          |
-| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?      |
-| `--time`          | Allocate it a time limit.       | This is a *maximum* time.             |
-| `--partition`     | Allocate it to a partition.     | It will get higher priority here.     |
-| `--output/error`  | The location of your log files. | *Always* in your scratch or projects. |
+| directive         | meaning                         | important                              |
+|:-----------------:|:-------------------------------:|:--------------------------------------:|
+| `--job-name`      | Give your job a name.           | Make it distinctive.                   |
+| `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.           |
+| `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?       |
+| `--gres`          | Request special resources.      | Do your job have special requirements? |
+| `--time`          | Allocate it a time limit.       | This is a *maximum* time.              |
+| `--partition`     | Allocate it to a partition.     | It will get higher priority here.      |
+| `--output/error`  | The location of your log files. | *Always* in your scratch or projects.  |
 
 For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job. Directives such as these are *caps*, and cannot be exceeded.
 
@@ -163,7 +166,7 @@ Ask for too many CPUs, too much RAM, or a GPU, and you're shrinking the number o
 
 #### Array Jobs ####
 
-An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of SLURM job which allows you to specify that an identical job script should be exected with some non-identical input or parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=1-250`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
+An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of SLURM job which allows you to specify that an identical job script should be exected with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=1-250`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
 
 ``` bash
 #!/bin/bash
@@ -181,4 +184,4 @@ slurmarray=(`seq 1 250`)
 echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
 ```
 
-This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on.
+This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script, on whichever compute node, it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. By placing this variable into a
