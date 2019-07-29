@@ -92,7 +92,7 @@ cat scratch/<your_name>/slurm_hello
 > bayes.camhres.ca
 ```
 
-As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own). However, Slurm provides no guarantee that it will run on any *specific* machine unless you exactly request one. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
+As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own). However, Slurm provides no guarantee that it will run on any *specific* machine unless you request one by name. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
 
 A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!**. If it isn't, the job's machine will fail to find the file and the job will crash. See **WHY IS MY JOB FAILING** for more pitfalls!
 
@@ -112,7 +112,7 @@ scancel -u <your_name>
 
 Where the `-u` flag indicates `user`, as it does for `sacct` as well.
 
-###  Writing Slurm scripts ###
+### Writing Slurm scripts ###
 
 To make good use of Slurm, you may provide options known as [*sbatch directives*](https://slurm.schedmd.com/sbatch.html). Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within Slurm scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
   * `--job-name` : for naming jobs
@@ -202,9 +202,9 @@ Because the cluster as a whole does not possess any subset of nodes satisfying a
 
 The rule when writing these directives is thus the following:
 
-**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.!**
+**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM!**
 
-**Ask for the smallest amount of resources that works!**
+*Ask for the smallest amount of resources that works!*
 
 Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [GRES](LINKHERE) in Slurm will be covered later in their own respective sections in more detail.
 
@@ -220,15 +220,15 @@ An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind o
 #SBATCH --time=01:00:00
 #SBATCH --partition=low-moby
 #SBATCH --array=0-249%10
-#SBATCH --output=/projects/kwitczak/logs/%x_%A_%a.out
-#SBATCH --error=/projects/kwitczak/logs/%x_%A_%a.err
+#SBATCH --output=/projects/<your_name>/logs/%x_%A_%a.out
+#SBATCH --error=/projects/<your_name>/logs/%x_%A_%a.err
 
 slurmarray=(`seq 1 250`)
 
 echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
 ```
 
-This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script, on whichever compute node, it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. By placing this variable into a `"${bash_array[$JUST_LIKE_SO]}"`, it allows you to individually substitute any datum you might want from the array.
+This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. This number allows you to uniquely substitute any datum you might want from the array.
 
 This works for anything. Consider the following:
 
@@ -240,8 +240,14 @@ subjects=(`cat $mydirectory/subjects.txt`)
 echo "Subject '${subjects[$SLURM_ARRAY_TASK_ID]}' was processed on `hostname -s`"
 ```
 
-In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it apepars in `$mydirectory/subjects.txt`. Note also, that the array as specified in `--array` begins with 0, rather than 1. This is because in bash, as in most programming languages, arrays begin at zero; thus we begin our Slurm array at zero as well.
+In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it appears in `$mydirectory/subjects.txt`. Note also, that the array as specified in `--array` begins with 0, rather than 1. This is because in bash arrays begin at zero; thus we begin our Slurm array at zero as well.
 
-In these examples, our `array` directive has included a per centage sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batching over an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible.
+In these examples, our `array` directive has included a per centage sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batch processing an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible.
 
 The Task Array Throttle allows you to cap the number of Slurm's simultaneous job attempts. Thus, `--array=0-249%10` executes a Slurm script once for each of 250 subjects, but never attempts to process more than 10 subjects at a time.
+
+#### Logging: ####
+
+#### Resource Allocation: ####
+
+#### GRES: ####
