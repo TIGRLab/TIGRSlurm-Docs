@@ -153,13 +153,13 @@ In this script, we've used a series of directives to effectively delineate how t
 | directive          | short     | meaning                         | important                                  |
 |:------------------:|:---------:|:-------------------------------:|:------------------------------------------:|
 | `--job-name`       | `-J`      | Give your job a name.           | Make it distinctive.                       |
-| `--ntasks`         | `-n`      | How many processes it will run. | Useful jobs with for multiple large steps. |
+| `--ntasks`         | `-n`      | How many processes it will run. | Useful for jobs with multiple large steps. |
 | `--cpus-per-task`  | `-c`      | Allocate it CPU cores.          | How many will it *actually* use?           |
 | `--mem-per-cpu`    | n/a       | Allocate it memory.             | How much does it need per CPU?             |
 | `--time`           | `-t`      | Allocate it a time limit.       | This is a *maximum* time.                  |
 | `--partition`      | `-p`      | Allocate it to a partition.     | It will get higher priority here.          |
 | `--output`/`error` | `-o`/`-e` | The location of your log files. | *Always* in your scratch or projects.      |
-| `--gres`           | n/a       | Allocate special resources.     | Request important resources.               |
+| `--gres`           | n/a       | Allocate important resources.   | GPUs and specific amounts of memory.       |
 
 For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
 
