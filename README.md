@@ -202,7 +202,7 @@ Because the cluster as a whole does not possess any subset of nodes satisfying a
 
 The rule when writing these directives is thus the following:
 
-**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM!**
+*For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM!*
 
 *Ask for the smallest amount of resources that works!*
 
@@ -242,11 +242,17 @@ echo "Subject '${subjects[$SLURM_ARRAY_TASK_ID]}' was processed on `hostname -s`
 
 In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it appears in `$mydirectory/subjects.txt`. Note also, that the array as specified in `--array` begins with 0, rather than 1. This is because in bash arrays begin at zero; thus we begin our Slurm array at zero as well.
 
-In these examples, our `array` directive has included a per centage sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batch processing an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible.
+In these examples, our `array` directive has included a per centage sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batch processing an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible, which can be achieved via `--array=0-249`.
 
 The Task Array Throttle allows you to cap the number of Slurm's simultaneous job attempts. Thus, `--array=0-249%10` executes a Slurm script once for each of 250 subjects, but never attempts to process more than 10 subjects at a time.
 
 #### Logging: ####
+
+Loggins in Slurm is performed via two directives:`--error` and `--output`. These are very important but reasonably simple directives which specify via absolute filepath the name of a a file to which error and output are logged in your script.
+
+Note that in this context, output *does not* refer to the filesystem output of the pipelines or other software you may have run as part of your Slurm script. Rather, it refers exclusively to the posix standard streams standard streams. This is to say, if your script would ordinarily write output onto the terminal during operation, that can and should be redirected using these directives into files located in commonly available filesystems.
+
+In practice, this should always be in `/scratch/<your_name>` or `/projects/<your_name>`. Sending output to anywhere else is effectively an error, as at best you won't be able to (easily) collect the logged results of your scripts together, and at worst the scripts may literally error out and your jobs will fail if the scripts have no ability to write to some location.
 
 #### Resource Allocation: ####
 
