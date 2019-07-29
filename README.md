@@ -132,7 +132,7 @@ If these look like options that may be passed on the command line, that's becaus
 #SBATCH --job-name=script_test
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=2
-#SBATCH --gres=mem:8K
+#SBATCH --gres=mem:16K
 #SBATCH --time=00:20:00
 #SBATCH --partition=high-moby
 #SBATCH --output=/projects/<your_name>/slurm_%A.out
@@ -155,14 +155,50 @@ In this script, we've used a series of directives to effectively delineate how t
 
 For directives which specify resources such as `time` and `cpus-per-task`, it is important that these allocations be approximately accurate, as they effectively limit your job. Directives such as these are *caps*, and cannot be exceeded.
 
-Therefore, if you allocate *too few* resources to your job, it may fail or work may be slow. However, if on the other hand you allocate *too many* resources, it may fail *even to start*, as the resources you requested might be unavailable.
+Therefore, if you allocate *too few* resources to your job, it may fail to work or may be slow. However, the same is true of allocating *too many* resources; if your job is too large, the SLURM scheduler may believe that no machine in the cluster is ready to satisfy its requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
 
-A good rule when writing these directives is this:
-**For any set of resources specified by directives, you are limiting yourself to machines possessing all of them.**
+For example, let's say you ask for the following resources:
 
+``` bash
+#SBATCH --cpus-per-task=8
+#SBATCH --gres=mem:32K
+#SBATCH --time=00:20:00
+```
+
+In this case, one might *expect* to get access to 16 of the lab's 32 machines, since lab machines generally donate approximately half of their resources, and 16 of the lab's machines have at least 16 **total** CPU cores.
+
+In reality, though, you would only get 8 machines, because via the `gres` directive, you're also asking for machines willing to donate **at least** 32,000 megabytes (i.e. 32GB) of RAM, and not all 16 core machines have that much to give.
+
+The same would be implicity true if we used another option (which we won't cover further here): `mem-per-cpu`. This an a directive which allows you to allocate a certain amount of memory to every CPU you allocate. With:
+
+``` bash
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=4G
+```
+
+We're asking for the same total amount (32GB of RAM), and this will restrict us to the same 8 machines.
+
+Furthermore, if you request the following:
+
+``` bash
+#SBATCH --partition=low-moby
+#SBATCH --time=2-12:00:00
+```
+
+Which is a requested time limit of 2 1/2 days, you will in fact *get zero machines and your job will never start*, since by definition, *no machines in low-moby are willing to run jobs longer than 32h*. In such situations, you'll receive a notification like the following:
+
+``` bash
+sbatch: error: Unable to allocate resources: Requested node configuration is not available
+```
+
+Because the cluster as a whole does not possess any subset of nodes satisfying all of your provided directives.
+
+The rule when writing these directives is thus the following:
+**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.**
 Ask for too many CPUs, too much RAM, or a GPU, and you're shrinking the number of machines eligible to run your job.
+*Ask for the smallest amount that works!*
 
-[Resource Allocation](LINKHERE) and [Logging](LINKHERE) in SLURM will be covered later in their own respective sections in more detail.
+Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [gres](LINKHERE) in SLURM will be covered later in their own respective sections in more detail.
 
 #### Array Jobs ####
 
@@ -184,4 +220,4 @@ slurmarray=(`seq 1 250`)
 echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
 ```
 
-This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script, on whichever compute node, it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. By placing this variable into a
+This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time SLURM runs this script, on whichever compute node, it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. By placing this variable into a `"${bash_array[$JUST_LIKE_SO]}"`, it allows you to individually substitute any datum you might want from the array.
