@@ -115,15 +115,22 @@ Where the `-u` flag indicates `user`, as it does for `sacct` as well.
 ###  Writing Slurm scripts ###
 
 To make good use of Slurm, you may provide options known as [*sbatch directives*](https://slurm.schedmd.com/sbatch.html). Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within Slurm scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
-  * `--time` : for specifying time-to-completion
   * `--job-name` : for naming jobs
+  * `--time` : for specifying time-to-completion
   * `--ntasks` : for specifying numbers of *job steps*
   * `--cpus-per-task` : for allocating CPU resources
-  * `--array` : for specifying the dimensions of large jobs
+  * `--mem-per-cpu` : for allocating memory
   * `--partition` : for specifying a partition
   * `--gres` : for special resource requirements
+  * `--array` : for specifying the dimensions of large jobs
 
-If these look like options that may be passed on the command line, that's because the are. All Slurm directives are equivalent to command line options, and may be passed on the command line when you call a Slurm script with `sbatch`, as in `sbatch --partition=low-moby my-script.sh`. However, this is inconvenient and should be avoided, as it forces you to correctly type each directive every time. Instead, follow this example and place the directives inside the script.
+If these look like options that may be passed on the command line, that's because they are. All Slurm directives are equivalent to command line options, and may be passed on the command line when you call a Slurm script with `sbatch`, as in:
+
+```bash
+sbatch --partition=low-moby my-script.sh
+```
+
+However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow this example and place the directives inside the script. This allows you to check the directives for correctness, keeps them correct once they are correct, and allows you to look back over directives you used in past successful runs of some script.
 
 #### Directives: ####
 
@@ -132,7 +139,7 @@ If these look like options that may be passed on the command line, that's becaus
 #SBATCH --job-name=script_test
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=2
-#SBATCH --gres=mem:16K
+#SBATCH --mem-per-cpu=1024
 #SBATCH --time=00:20:00
 #SBATCH --partition=high-moby
 #SBATCH --output=/projects/<your_name>/slurm_%A.out
@@ -148,12 +155,12 @@ In this script, we've used a series of directives to effectively delineate how t
 | `--job-name`      | Give your job a name.           | Make it distinctive.                  |
 | `--ntasks`        | How many times should it run?   | Helpful for repetitive jobs.          |
 | `--cpus-per-task` | Allocate it CPU cores.          | How many will it *actually* use?      |
-| `--gres`          | Request special resources.      | Does your job need special resources? |
+| `--mem-per-cpu`   | Allocate it memory.             | How much does it need per CPU?        |
 | `--time`          | Allocate it a time limit.       | This is a *maximum* time.             |
 | `--partition`     | Allocate it to a partition.     | It will get higher priority here.     |
 | `--output/error`  | The location of your log files. | *Always* in your scratch or projects. |
 
-For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *caps*, and cannot be exceeded once the job has started.
+For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
 
 Therefore, if you allocate *too few* resources to your job, it may fail to work or may be slow. However, the same is true of allocating *too many* resources; if your job is too large, the Slurm scheduler may believe that no machine in the cluster is ready to satisfy its requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
 
@@ -165,11 +172,11 @@ For example, let's say you ask for the following resources:
 #SBATCH --time=00:20:00
 ```
 
-In this case, one might *expect* to get access to 16 of the lab's 32 machines, since lab machines generally donate approximately half of their resources, and 16 of the lab's machines have at least 16 **total** CPU cores
+In this case, one might *expect* to get access to 16 of the lab's 32 machines, since since we asked for 8 cores per job, and lab machines generally donate approximately half of their resources, and at least 16 of the lab's machines have 16 or more CPU cores.
 
-In reality, though, you would only get 8 machines, because via the `gres` directive, you're also asking for machines willing to donate **at least** 32,000 megabytes (i.e. 32GB) of RAM, and not all 16 core machines have that much to give.
+In reality, though, you would only get 8 machines, because via the `gres` directive, you're also asking for machines willing to donate **at least** 32,000 megabytes (i.e. 32GB) of RAM, and not all 16 core machines have that memory much to give.
 
-The same would be implicity true if we used another option (which we won't cover further here): `mem-per-cpu`. This an a directive which allows you to allocate a certain amount of memory to every CPU you allocate. With:
+The same would be implicity true if we used the directive `mem-per-cpu`. With:
 
 ``` bash
 #SBATCH --cpus-per-task=8
@@ -194,13 +201,16 @@ sbatch: error: Unable to allocate resources: Requested node configuration is not
 Because the cluster as a whole does not possess any subset of nodes satisfying all of your provided directives.
 
 The rule when writing these directives is thus the following:
-**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM. Ask for the smallest amount of resources that works!**
+
+**For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.!**
+
+**Ask for the smallest amount of resources that works!**
 
 Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [GRES](LINKHERE) in Slurm will be covered later in their own respective sections in more detail.
 
 #### Array Jobs ####
 
-An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=1-250`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
+An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=0-249`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example.
 
 ``` bash
 #!/bin/bash
@@ -209,7 +219,7 @@ An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind o
 #SBATCH --cpus-per-task=1
 #SBATCH --time=01:00:00
 #SBATCH --partition=low-moby
-#SBATCH --array=1-250%10
+#SBATCH --array=0-249%10
 #SBATCH --output=/projects/kwitczak/logs/%x_%A_%a.out
 #SBATCH --error=/projects/kwitczak/logs/%x_%A_%a.err
 
@@ -224,7 +234,14 @@ This works for anything. Consider the following:
 
 ``` bash
 subjects=(`cat $mydirectory/subjects.txt`)
-### Do some stuff to "${subjects[$SLURM_ARRAY_TASK_ID]}" here...
+
+# ... <do some stuff to "${subjects[$SLURM_ARRAY_TASK_ID]}" here> ...
+
 echo "Subject '${subjects[$SLURM_ARRAY_TASK_ID]}' was processed on `hostname -s`"
 ```
 
+In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it apepars in `$mydirectory/subjects.txt`. Note also, that the array as specified in `--array` begins with 0, rather than 1. This is because in bash, as in most programming languages, arrays begin at zero; thus we begin our Slurm array at zero as well.
+
+In these examples, our `array` directive has included a per centage sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batching over an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible.
+
+The Task Array Throttle allows you to cap the number of Slurm's simultaneous job attempts. Thus, `--array=0-249%10` executes a Slurm script once for each of 250 subjects, but never attempts to process more than 10 subjects at a time.
