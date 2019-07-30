@@ -217,7 +217,7 @@ For directives which specify resources such as `time` and `cpus-per-task`, it is
 
 Thus, if you allocate *too few* resources to your job, it may fail to work or may be slow.
 
-However, the reverse is also true; if you allocate *too many* resources the Slurm scheduler may believe that no machine in the cluster is capable of satisfying the job's its requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
+However, the reverse is also true; if you allocate *too many* resources the Slurm scheduler may believe that no machine in the cluster is capable of satisfying the job's requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
 
 For example, let's say you ask for the following resources:
 
@@ -235,20 +235,18 @@ The same would implicity hold true if we used the directive `gres`. With:
 
 ``` bash
 #SBATCH --cpus-per-task=8
-#SBATCH --gres=32K
+#SBATCH --gres=mem:32K
 ```
 
 We're asking for the same total amount, 32K megabytes i.e. 32GB of RAM, and this will also restrict us to the same 8 machines.
 
 GRES are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`.
 
-By specifying `--gres=mem:(COUNT)` where (COUNT) is one of `8K`, `16K`, `32K`, or `128K`, allows you to generally target a job at machines willing to provide >= (COUNT) GB of memory. This allows you to specifically select machines willing to allocate enough memory for a high-memory job, for instance, independently of `cpus-per-task`.
+By specifying `--gres=mem:(COUNT)K` where (COUNT) is one of `8`, `16`, `32`, or `128`, you can generally target a job at machines willing to provide >= (COUNT)GB of memory. This allows you to specifically select machines willing to allocate enough memory for a high-memory job, for instance, independently of `cpus-per-task`.
 
-`--gres=gpu:(TYPE):(COUNT)` accepts both a (TYPE) and a (COUNT), where TYPE is one of `titanx` or `qm4k`, of which there are 4 `titanx`s in groups of 4, and 7 `qm4k`s in groups of 1.
+`--gres=gpu:(TYPE):(COUNT)` accepts both a (TYPE) and a (COUNT), where TYPE is one of `titanx` or `qm4k`, of which there are 4 `titanx`s in 1 group of 4, and 7 `qm4k`s in 7 groups of 1.
 
-While `gres=mem` exists to allow users to informally select machines with some amount of available RAM, `gres=gpu` is **explicitly** required for Slurm jobs to make use of CUDA.
-
-CUDA jobs which **do not** use `gres` to allocate one or more GPUs *will be unable to use any GPUs*, as Slurm constrains its jobs from using GPU devices they do not expressly call for.
+Importantly, `gres=gpu` is **explicitly** required for Slurm jobs to make use of a GPU. CUDA jobs which **do not** use `gres` to allocate one or more GPUs *will be unable to use any GPUs*, as Slurm constrains its jobs from using GPU devices they do not expressly call for in their directives.
 
 Furthermore, it is also possible to request invalid resource allocations. For example, if you request the following:
 
@@ -263,10 +261,8 @@ Which is a request for a time limit of 2 1/2 days to run on low-moby, you will i
 sbatch: error: Unable to allocate resources: Requested node configuration is not available
 ```
 
-Because the cluster as a whole does not possess any subset of nodes satisfying all of your provided directives.
+The rule when writing resource allocation directives is the following:
 
-The rule when writing these directives is thus the following:
+*For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.* Therefore, always allocate the smallest amount of resources that can run your job!
 
-*For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.*
-
-*Ask for the smallest amount of resources that works!*
+Not only will this make more machines eligible to run parts of your job, it will generally allow machines to run *more simultaneous copies* of your job. A machine with 8 CPU cores can accept one job of 6 cores **or** two jobs of 4 cores, effectively doubling the performance of that job.
