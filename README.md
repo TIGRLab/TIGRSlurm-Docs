@@ -197,9 +197,9 @@ subjects=(`cat $mydirectory/subjects.txt`)
 echo "Subject '${subjects[$SLURM_ARRAY_TASK_ID]}' was processed on `hostname -s`"
 ```
 
-In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it appears in `$mydirectory/subjects.txt`. Note also, that the array as specified in `--array` begins with 0, rather than 1. This is because in bash arrays begin at zero; thus we begin our Slurm array at zero as well.
+In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it appears in `$mydirectory/subjects.txt`. Note that the array as specified in `--array` begins with 0. This is because in bash arrays begin at zero; thus we begin our Slurm array at zero as well.
 
-In these examples, our `array` directive has included a per centage sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batch processing an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible, which can be achieved via `--array=0-249`.
+In these examples, our `array` directive includes a per cent sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batch processing an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible, which can be achieved via `--array=0-249`.
 
 The Task Array Throttle allows you to cap the number of Slurm's simultaneous job attempts. Thus, `--array=0-249%10` executes a Slurm script once for each of 250 subjects, but never attempts to process more than 10 subjects at a time.
 
@@ -231,37 +231,33 @@ Intuitively, this seems like a fairly large job, and it is. Performing a little 
 
 In reality, though, you would only get 8 machines, because via the `mem-per-cpu` directive, you're also asking for machines willing to donate *at least* 32GB of RAM, and not all 16 core machines have that much memory. 
 
-The same would be implicity true if we used the directive `gres`. With:
+The same would implicity hold true if we used the directive `gres`. With:
 
 ``` bash
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=32K
 ```
 
-We're asking for the same total amount, 32K megabytes i.e. 32GB of RAM, and this will restrict us to the same 8 machines.
+We're asking for the same total amount, 32K megabytes i.e. 32GB of RAM, and this will also restrict us to the same 8 machines.
 
-GRES are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`. The following tables lays out our current GRES configuration:
+GRES are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`.
 
-| type | gres   | nodes | number |
-|:----:|:------:|:-----:|:------:|
-| gpu  | qm4k   | 7     | 7      |
-| gpu  | titanx | 1     | 4      |
+By specifying `--gres=mem:(COUNT)` where (COUNT) is one of `8K`, `16K`, `32K`, or `128K`, allows you to generally target a job at machines willing to provide >= (COUNT) GB of memory. This allows you to specifically select machines willing to allocate enough memory for a high-memory job, for instance, independently of `cpus-per-task`.
 
-| type | gres | nodes |
-|:----:|:----:|:-----:|
-| mem  | 8K   | 4     |
-| mem  | 16K  | 19    |
-| mem  | 32K  | 4     |
-| mem  | 128K | 4     |
+`--gres=gpu:(TYPE):(COUNT)` accepts both a (TYPE) and a (COUNT), where TYPE is one of `titanx` or `qm4k`, of which there are 4 `titanx`s in groups of 4, and 7 `qm4k`s in groups of 1.
 
-Furthermore, if you request the following:
+While `gres=mem` exists to allow users to informally select machines with some amount of available RAM, `gres=gpu` is **explicitly** required for Slurm jobs to make use of CUDA.
+
+CUDA jobs which **do not** use `gres` to allocate one or more GPUs *will be unable to use any GPUs*, as Slurm constrains its jobs from using GPU devices they do not expressly call for.
+
+Furthermore, it is also possible to request invalid resource allocations. For example, if you request the following:
 
 ``` bash
 #SBATCH --partition=low-moby
 #SBATCH --time=2-12:00:00
 ```
 
-Which is a request for a time limit of 2 1/2 days, you will in fact *get zero machines and your job will never start*, since, as you can see by running the `sinfo` command, *machines in low-moby are unwilling to run jobs longer than 32h*. In such situations, you'll receive a notification like the following:
+Which is a request for a time limit of 2 1/2 days to run on low-moby, you will in fact *get zero machines and your job will never start*, since, as you can see by running the `sinfo` command, *machines in low-moby are unwilling to run jobs longer than 32h*. In such situations, you'll receive a notification like the following:
 
 ``` bash
 sbatch: error: Unable to allocate resources: Requested node configuration is not available
@@ -274,9 +270,3 @@ The rule when writing these directives is thus the following:
 *For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.*
 
 *Ask for the smallest amount of resources that works!*
-
-``` bash
-
-```
-
-GRES, by the way, are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`. GPU is exactly what it sounds like
