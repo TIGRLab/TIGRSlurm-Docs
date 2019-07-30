@@ -159,53 +159,9 @@ In this script, we've used a series of directives to effectively delineate how t
 | `--time`           | `-t`      | Allocate it a time limit.       | This is a *maximum* time.                  |
 | `--partition`      | `-p`      | Allocate it to a partition.     | It will get higher priority here.          |
 | `--output`/`error` | `-o`/`-e` | The location of your log files. | *Always* in your scratch or projects.      |
-| `--gres`           | n/a       | Allocate important resources.   | GPUs and specific amounts of memory.       |
+| `--gres`           | n/a       | Allocate generic resources.     | GPUs and specific amounts of memory.       |
 
-For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
 
-Therefore, if you allocate *too few* resources to your job, it may fail to work or may be slow. However, the same is true of allocating *too many* resources; if your job is too large, the Slurm scheduler may believe that no machine in the cluster is ready to satisfy its requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
-
-For example, let's say you ask for the following resources:
-
-``` bash
-#SBATCH --cpus-per-task=8
-#SBATCH --gres=mem:32K
-#SBATCH --time=00:20:00
-```
-
-In this case, one might *expect* to get access to 16 of the lab's 32 machines, since since we asked for 8 cores per job, and lab machines generally donate approximately half of their resources, and at least 16 of the lab's machines have 16 or more CPU cores.
-
-In reality, though, you would only get 8 machines, because via the `gres` directive, you're also asking for machines willing to donate **at least** 32,000 megabytes (i.e. 32GB) of RAM, and not all 16 core machines have that memory much to give.
-
-The same would be implicity true if we used the directive `mem-per-cpu`. With:
-
-``` bash
-#SBATCH --cpus-per-task=8
-#SBATCH --mem-per-cpu=4G
-```
-
-We're asking for the same total amount (32GB of RAM), and this will restrict us to the same 8 machines.
-
-Furthermore, if you request the following:
-
-``` bash
-#SBATCH --partition=low-moby
-#SBATCH --time=2-12:00:00
-```
-
-Which is a requested time limit of 2 1/2 days, you will in fact *get zero machines and your job will never start*, since, as you can see by running the `sinfo` command, *machines in low-moby are unwilling to run jobs longer than 32h*. In such situations, you'll receive a notification like the following:
-
-``` bash
-sbatch: error: Unable to allocate resources: Requested node configuration is not available
-```
-
-Because the cluster as a whole does not possess any subset of nodes satisfying all of your provided directives.
-
-The rule when writing these directives is thus the following:
-
-*For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM!*
-
-*Ask for the smallest amount of resources that works!*
 
 Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [GRES](LINKHERE) in Slurm will be covered later in their own respective sections in more detail.
 
@@ -257,4 +213,70 @@ In practice, this should always be in `/scratch/<your_name>` or `/projects/<your
 
 #### Resource Allocation: ####
 
-#### GRES: ####
+For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
+
+Thus, if you allocate *too few* resources to your job, it may fail to work or may be slow.
+
+However, the reverse is also true; if you allocate *too many* resources the Slurm scheduler may believe that no machine in the cluster is capable of satisfying the job's its requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
+
+For example, let's say you ask for the following resources:
+
+``` bash
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=8G
+#SBATCH --time=00:20:00
+```
+
+Intuitively, this seems like a fairly large job, and it is. Performing a little arithmetic, one might *expect* to get access to 16 of the lab's 32 machines, since we asked for 8 cores per job, and lab machines generally donate approximately half of their resources, and at least 16 of the lab's machines have 16 or more CPU cores.
+
+In reality, though, you would only get 8 machines, because via the `mem-per-cpu` directive, you're also asking for machines willing to donate *at least* 32GB of RAM, and not all 16 core machines have that much memory. 
+
+The same would be implicity true if we used the directive `gres`. With:
+
+``` bash
+#SBATCH --cpus-per-task=8
+#SBATCH --gres=32K
+```
+
+We're asking for the same total amount, 32K megabytes i.e. 32GB of RAM, and this will restrict us to the same 8 machines.
+
+GRES are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`. The following tables lays out our current GRES configuration:
+
+| type | gres   | nodes | number |
+|:----:|:------:|:-----:|:------:|
+| gpu  | qm4k   | 7     | 7      |
+| gpu  | titanx | 1     | 4      |
+
+| type | gres | nodes |
+|:----:|:----:|:-----:|
+| mem  | 8K   | 4     |
+| mem  | 16K  | 19    |
+| mem  | 32K  | 4     |
+| mem  | 128K | 4     |
+
+Furthermore, if you request the following:
+
+``` bash
+#SBATCH --partition=low-moby
+#SBATCH --time=2-12:00:00
+```
+
+Which is a request for a time limit of 2 1/2 days, you will in fact *get zero machines and your job will never start*, since, as you can see by running the `sinfo` command, *machines in low-moby are unwilling to run jobs longer than 32h*. In such situations, you'll receive a notification like the following:
+
+``` bash
+sbatch: error: Unable to allocate resources: Requested node configuration is not available
+```
+
+Because the cluster as a whole does not possess any subset of nodes satisfying all of your provided directives.
+
+The rule when writing these directives is thus the following:
+
+*For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.*
+
+*Ask for the smallest amount of resources that works!*
+
+``` bash
+
+```
+
+GRES, by the way, are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`. GPU is exactly what it sounds like
