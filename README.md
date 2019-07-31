@@ -163,9 +163,9 @@ In this script, we've used a series of directives to effectively delineate how t
 
 
 
-Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [GRES](LINKHERE) in Slurm will be covered later in their own respective sections in more detail.
+Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [Array Jobs](#arrayjobs) in Slurm will be covered later in their own respective sections in more detail.
 
-#### Array Jobs ####
+#### Array Jobs<a name="arrayjobs"></a> ####
 
 An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=0-249`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example:
 
