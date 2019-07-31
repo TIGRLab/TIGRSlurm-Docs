@@ -30,9 +30,9 @@ high-moby    up   infinite      1   idle downie
 
 Which gives you an idea of which partitions are available and more specifically the number of computers as well as their identities. For (a lot) more details, check out the Slurm official [Quick Start User Guide](https://slurm.schedmd.com/quickstart.html).
 
-### How to use Slurm
+### <a name="howtouseslurm">How to use Slurm</a>
 
-#### Submitting your first job
+#### <a name="submittingyourfirstjob">Submitting your first job</a>
 In order to run a Slurm job, the first thing you will need is a job script. This can be *in any kind of language* such as Bash, Python, MATLAB, or R. In this section we'll stick with Bash for simplicity. Suppose that we write up a text file called `hello_slurm.sh` with the following contents:
 
 ```bash
@@ -65,7 +65,7 @@ Submitted batch job <jobid>
 
 Where `jobid` is a number.
 
-#### Inspecting your first job
+#### <a name="inspectingyourfirstjob">Inspecting your first job</a>
 
 Once you've submitted a job you can check its status via the [`sacct`](https://slurm.schedmd.com/sacct.html) command in the terminal. `sacct` will only show your jobs and what their statuses are, unless you specify otherwise using the `-u` option with another username. For example you might see something like:
 ```
@@ -81,7 +81,7 @@ Once you've submitted a job you can check its status via the [`sacct`](https://s
 - `Account` will always be tigrlab on our local Kimel cluster
 - `AllocCPUS` is how many CPUs were given to the ask
 - `State` describes Job state and can either be `COMPLETED`, `RUNNING`, `PENDING`, or possibly `FAILED`
-- `Partition` tells you the partition used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#directives:).
+- `Partition` tells you the partition used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#directives).
 
 Once the job `State` is `COMPLETED` (it'll take a minute due to `sleep`), we can inspect the outputs - in this case in `/scratch/<your_name>/slurm_hello`:
 
@@ -94,9 +94,9 @@ cat scratch/<your_name>/slurm_hello
 
 As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own). However, Slurm provides no guarantee that it will run on any *specific* machine unless you request one by name. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
 
-A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!**. If it isn't, the job's machine will fail to find the file and the job will crash. See **WHY IS MY JOB FAILING** for more pitfalls!
+A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!**. If it isn't, the job's machine will fail to find the file and the job will crash. See **[WHY IS MY JOB FAILING](#pitfallsanfaq)** for more pitfalls! See also [Logging](#logging).
 
-#### Cancelling your Job
+#### <a name="cancellingyourjob">Cancelling your Job</a>
 
 To cancel any slurm job the command `scancel` is used. Common ways to cancel jobs is to provide the `JobID`:
 
@@ -112,7 +112,7 @@ scancel -u <your_name>
 
 Where the `-u` flag indicates `user`, as it does for `sacct` as well.
 
-### Writing Slurm scripts ###
+### <a name="writingslurmscripts">Writing Slurm scripts</a> ###
 
 To make good use of Slurm, you may provide options known as [*sbatch directives*](https://slurm.schedmd.com/sbatch.html). Here, we'll cover a few basic directives and their use in some example scripts. These directives are provided within Slurm scripts on lines immediately following the shebang line. The directives we'll cover here will be the following:
   * `--job-name` : for naming jobs
@@ -132,7 +132,7 @@ sbatch --partition=low-moby my-script.sh
 
 However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow this example and place the directives inside the script. This allows you to check the directives for correctness, keeps them correct once they are correct, and allows you to look back over directives you used in past successful runs of some script.
 
-#### Directives: ####
+#### <a name="directives">Directives</a> ####
 
 ``` bash
 #!/bin/bash
@@ -163,9 +163,9 @@ In this script, we've used a series of directives to effectively delineate how t
 
 
 
-Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [Array Jobs](#arrayjobs) in Slurm will be covered later in their own respective sections in more detail.
+Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [Array Jobs](#arrays) in Slurm will be covered later in their own respective sections in more detail.
 
-#### Array Jobs<a name="arrayjobs"></a> ####
+#### <a name="arrayjobs">Array Jobs</a> ####
 
 An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=0-249`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example:
 
@@ -203,7 +203,7 @@ In these examples, our `array` directive includes a per cent sign followed by a 
 
 The Task Array Throttle allows you to cap the number of Slurm's simultaneous job attempts. Thus, `--array=0-249%10` executes a Slurm script once for each of 250 subjects, but never attempts to process more than 10 subjects at a time.
 
-#### Logging: ####
+#### <a name="logging">Logging</a> ####
 
 Loggins in Slurm is performed via two directives:`--error` and `--output`. These are very important but reasonably simple directives which specify via absolute filepath the name of a a file to which error and output are logged in your script.
 
@@ -211,7 +211,7 @@ Note that in this context, output *does not* refer to the filesystem output of t
 
 In practice, this should always be in `/scratch/<your_name>` or `/projects/<your_name>`. Sending output to anywhere else is effectively an error, as at best you won't be able to (easily) collect the logged results of your scripts together, and at worst the scripts may literally error out and your jobs will fail if the scripts have no ability to write to some location.
 
-#### Resource Allocation: ####
+#### <a name="resourceallocation">Resource Allocation</a> ####
 
 For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
 
