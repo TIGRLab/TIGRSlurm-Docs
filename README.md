@@ -4,7 +4,7 @@
 Before using the queue it's useful to know what's available for you to use on the system. The queue consists of groups of computers called **partitions**:
 
 ```
-STICK IN DIAGRAM OF QUEUE
+![STICK IN DIAGRAM OF QUEUE](https://slurm.schedmd.com/arch.gif "Obvious placeholder is obvious. Doot.")
 ```
 
 When you submit any job to our Kimel cluster, it goes to any one of the available partitions which you need to specify (moby is default). In general:
@@ -130,7 +130,7 @@ If these look like options that may be passed on the command line, that's becaus
 sbatch --partition=low-moby my-script.sh
 ```
 
-However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow this example and place the directives inside the script. This allows you to check the directives for correctness, keeps them correct once they are correct, and allows you to look back over directives you used in past successful runs of some script.
+However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow the below example and place the directives inside the script. This allows you to check the directives for correctness, ensures they stay correct once they are, and allows you to look back over directives you used in past successful runs of some script.
 
 #### <a name="directives">Directives</a> ####
 
@@ -163,7 +163,7 @@ In this script, we've used a series of directives to effectively delineate how t
 
 
 
-Using [Resource Allocation](LINKHERE), [Logging](LINKHERE), and [Array Jobs](#arrays) in Slurm will be covered later in their own respective sections in more detail.
+Using [Resource Allocation](#resourceallocation), [Logging](#logging), and [Array Jobs](#arrayjobs) in Slurm will be covered later in their own respective sections in more detail.
 
 #### <a name="arrayjobs">Array Jobs</a> ####
 
