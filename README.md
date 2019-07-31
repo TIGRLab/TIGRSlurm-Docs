@@ -3,9 +3,7 @@
 
 Before using the queue it's useful to know what's available for you to use on the system. The queue consists of groups of computers called **partitions**:
 
-```
 ![STICK IN DIAGRAM OF QUEUE](https://slurm.schedmd.com/arch.gif "Obvious placeholder is obvious. Doot.")
-```
 
 When you submit any job to our Kimel cluster, it goes to any one of the available partitions which you need to specify (moby is default). In general:
 
