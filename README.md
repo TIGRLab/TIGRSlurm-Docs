@@ -213,13 +213,27 @@ In practice, this should always be in `/scratch/<your_name>` or `/projects/<your
 
 #### <a name="resourceallocation">Resource Allocation</a> ####
 
-For directives which specify resources such as `time` and `cpus-per-task`, it is important that these directives be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
+For directives which specify resources such as `time` and `cpus-per-task`, it is important that the provided values be approximately accurate, as they effectively limit your job. Allocations such as these are *constraints*, and cannot be exceeded once the job has started.
 
-Thus, if you allocate *too few* resources to your job, it may fail to work or may be slow.
+Thus, if you allocate *too few* resources to your job, it may fail to work or may be slow. However, the converse is also true; if you allocate *too many* resources, your job could fail or run slowly.
 
-However, the reverse is also true; if you allocate *too many* resources the Slurm scheduler may believe that no machine in the cluster is capable of satisfying the job's requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
+For example, The Slurm scheduler may believe that no machine in the cluster is powerful enough to satisfy the job's requirements, or else it may provide you with a highly restricted range of machines across which your job may run!
 
-For example, let's say you ask for the following resources:
+Remember that when allocating resources using directives, you are not providing a *total pool of resources* for all subjects; you are providing a resource granulation *for each subject*. For example:
+
+``` bash
+#SBATCH --cpus-per-task=4
+#SBATCH --array=0-1
+```
+
+These directives are *not* providing for four CPU cores to be divided for the simultaneous processing of two subjects; it is providing for *each of two subjects to be processed by four cores apiece*. If each subject needs two CPU cores to run its processing script, we have just overserved this job by 100%. Correctly, we would want:
+
+``` bash
+#SBATCH --cpus-per-task=2
+#SBATCH --array=0-1
+```
+
+Another example; let's say you ask for the following resources:
 
 ``` bash
 #SBATCH --cpus-per-task=8
@@ -227,7 +241,7 @@ For example, let's say you ask for the following resources:
 #SBATCH --time=00:20:00
 ```
 
-Intuitively, this seems like a fairly large job, and it is. Performing a little arithmetic, one might *expect* to get access to 16 of the lab's 32 machines, since we asked for 8 cores per job, and lab machines generally donate approximately half of their resources, and at least 16 of the lab's machines have 16 or more CPU cores.
+Intuitively, this seems like a fairly large job, and it is. One might *expect* to get access to 16 of the lab's 32 machines, since we asked for 8 cores per job, and lab machines generally donate approximately half of their resources, and 16 of the lab's machines have 16 or more CPU cores.
 
 In reality, though, you would only get 8 machines, because via the `mem-per-cpu` directive, you're also asking for machines willing to donate *at least* 32GB of RAM, and not all 16 core machines have that much memory. 
 
@@ -242,11 +256,11 @@ We're asking for the same total amount, 32K megabytes i.e. 32GB of RAM, and this
 
 GRES are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`.
 
-By specifying `--gres=mem:(COUNT)K` where (COUNT) is one of `8`, `16`, `32`, or `128`, you can generally target a job at machines willing to provide >= (COUNT)GB of memory. This allows you to specifically select machines willing to allocate enough memory for a high-memory job, for instance, independently of `cpus-per-task`.
+By specifying `--gres=mem:(COUNT)K` where (COUNT) is one of `8`, `16`, `32`, or `128`, you can generally target a job at machines willing to provide >= (COUNT)GB of memory. This allows you to specifically select machines willing to allocate enough memory for a high-memory job, independently of `cpus-per-task`.
 
 `--gres=gpu:(TYPE):(COUNT)` accepts both a (TYPE) and a (COUNT), where TYPE is one of `titanx` or `qm4k`, of which there are 4 `titanx`s in 1 group of 4, and 7 `qm4k`s in 7 groups of 1.
 
-Importantly, `gres=gpu` is **explicitly** required for Slurm jobs to make use of a GPU. CUDA jobs which **do not** use `gres` to allocate one or more GPUs *will be unable to use any GPUs*, as Slurm constrains its jobs from using GPU devices they do not expressly call for in their directives.
+Importantly, `gres=gpu` is **explicitly required** for Slurm jobs to make use of a GPU. CUDA jobs which **do not** use `gres` to allocate one or more GPUs *will be unable to use any GPUs*, as Slurm constrains its jobs from using GPU devices they do not expressly call for in their directives.
 
 Furthermore, it is also possible to request invalid resource allocations. For example, if you request the following:
 
