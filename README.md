@@ -49,7 +49,7 @@ hostname >> /scratch/<your_name>/slurm_hello
 
 This script will write to a file with the path: `/scratch/<your_name>/slurm_hello`. 
 
-We can submit this job to the Slurm queue at Kimel by opening up the terminal, going to the directory containing the script and entering:
+We can submit this job to the Slurm queue at Kimel using the [`sbatch`](https://slurm.schedmd.com/sbatch.html) command, by opening up the terminal, going to the directory containing the script and entering:
 
 ```bash
 sbatch hello_slurm.sh
@@ -96,7 +96,7 @@ A consequence of this is that if you need your job to use a file, or touch a fil
 
 #### <a name="cancellingyourjob">Cancelling your Job</a>
 
-To cancel any slurm job the command `scancel` is used. Common ways to cancel jobs is to provide the `JobID`:
+To cancel any slurm job the command [`scancel`](https://slurm.schedmd.com/scancel.html) is used. Common ways to cancel jobs is to provide the `JobID`:
 
 ```
 scancel <jobID1> <jobID2> <jobID3> ...
