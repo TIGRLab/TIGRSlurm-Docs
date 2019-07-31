@@ -3,7 +3,7 @@
 
 Before using the queue it's useful to know what's available for you to use on the system. The queue consists of groups of computers called **partitions**:
 
-![STICK IN DIAGRAM OF QUEUE](https://slurm.schedmd.com/arch.gif "Obvious placeholder is obvious. Doot.")
+![STICK IN DIAGRAM OF QUEUE](https://slurm.schedmd.com/entities.gif "Obvious placeholder is obvious. Doot.")
 
 When you submit any job to our Kimel cluster, it goes to any one of the available partitions which you need to specify (moby is default). In general:
 
@@ -128,7 +128,7 @@ If these look like options that may be passed on the command line, that's becaus
 sbatch --partition=low-moby my-script.sh
 ```
 
-However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow the below example and place the directives inside the script. This allows you to check the directives for correctness, ensures they stay correct once they are, and allows you to look back over directives you used in past successful runs of some script.
+However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow the below example and place the directives inside the script. This allows you to check the directives for correctness, ensures they stay correct once they are, and allows review  of directives for past successful script runs.
 
 #### <a name="directives">Directives</a> ####
 
@@ -165,7 +165,9 @@ Using [Resource Allocation](#resourceallocation), [Logging](#logging), and [Arra
 
 #### <a name="arrayjobs">Array Jobs</a> ####
 
-An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter. In an array job, the `--array` directive is used to specify a numerical range, as in `--array=0-249`. This array works similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example:
+An [**array job**](https://slurm.schedmd.com/job_array.html) is a special kind of Slurm job which allows you to specify that an identical job script should be executed with some non-identical parameter.
+
+In an array job, the `--array` directive is used to specify a numerical range such as `--array=0-249`. This range acts similarly to `--ntasks=250`, except that it provides a distinguishing variable *within* your script called a `SLURM_ARRAY_TASK_ID`, allowing each copy of the script to run on a different datum. For example:
 
 ``` bash
 #!/bin/bash
@@ -183,9 +185,9 @@ slurmarray=(`seq 1 250`)
 echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
 ```
 
-This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`. This number allows you to uniquely substitute any datum you might want from the array.
+This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`, indicating a unique datum each time.
 
-This works for anything. Consider the following:
+This works for any data. Consider the following:
 
 ``` bash
 subjects=(`cat $mydirectory/subjects.txt`)
@@ -195,11 +197,11 @@ subjects=(`cat $mydirectory/subjects.txt`)
 echo "Subject '${subjects[$SLURM_ARRAY_TASK_ID]}' was processed on `hostname -s`"
 ```
 
-In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it appears in `$mydirectory/subjects.txt`. Note that the array as specified in `--array` begins with 0. This is because in bash arrays begin at zero; thus we begin our Slurm array at zero as well.
+In this example, as above, `"${subjects[$SLURM_ARRAY_TASK_ID]}"` becomes the name of the subject as it appears in `$mydirectory/subjects.txt`. Note that the array begins at 0; this is because in bash arrays begin at zero, so we begin our Slurm array at zero as well.
 
-In these examples, our `array` directive includes a per cent sign followed by a number, as in `--array=0-249%10`. This is the `Task Array Throttle`. If we are batch processing an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible, which can be achieved via `--array=0-249`.
+If we are batch processing an array of 250 subjects, the default behaviour of Slurm is to attempt to run as many subjects as possible, which can be achieved via `--array=0-249`. However, in the above example, the `array` directive includes a per cent sign followed by an integer, as in `--array=0-249%10`.
 
-The Task Array Throttle allows you to cap the number of Slurm's simultaneous job attempts. Thus, `--array=0-249%10` executes a Slurm script once for each of 250 subjects, but never attempts to process more than 10 subjects at a time.
+This is the `Array Task Throttle`. The `Array Task Throttle` allows you to cap the number of Slurm's simultaneous job attempts. Thus, `--array=0-249%10` executes a Slurm script once for each of 250 subjects, but never attempts to process more than 10 subjects at a time.
 
 #### <a name="logging">Logging</a> ####
 
