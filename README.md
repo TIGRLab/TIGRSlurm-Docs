@@ -280,3 +280,6 @@ The rule when writing resource allocation directives is the following:
 *For any set of resources specified by directives, you are limiting yourself to machines willing to provide AT LEAST ALL OF THEM.* Therefore, always allocate the smallest amount of resources that can run your job!
 
 Not only will this make more machines eligible to run parts of your job, it will generally allow machines to run *more simultaneous copies* of your job. A machine with 8 CPU cores can accept one job of 6 cores **or** two jobs of 4 cores, effectively doubling the performance of that job.
+
+### <a name="pitfallsanfaq">Pitfalls: an FAQ</a> ###
+
