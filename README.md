@@ -288,7 +288,7 @@ Not only will this make more machines eligible to run parts of your job, it will
 ``` bash
 $ basharray=(itemzero itemone itemtwo)
 
-$ echo "$bash{basharray[1]}"
+$ echo "${basharray[1]}"
 
 > itemone
 ```
