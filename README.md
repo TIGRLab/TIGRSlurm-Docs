@@ -92,7 +92,7 @@ cat scratch/<your_username>/slurm_hello
 
 As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own workstation). However, Slurm provides no guarantee that it will run on any *specific* machine unless you request one by name. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
 
-A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!** If it isn't, the job's machine will fail to find the file and the job will crash. See **[WHY IS MY JOB FAILING](#pitfallsanfaq)** for more pitfalls! See also [Logging](#logging) for details on output logs.
+A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!** If it isn't, the job's machine will fail to find the file and the job will crash. See [**Why are my jobs failing?**](#pitfallsanfaq) for more pitfalls! See also [Logging](#logging) for details on output logs.
 
 #### <a name="cancellingyourjob">Cancelling your Job</a>
 
@@ -226,7 +226,7 @@ Remember that when allocating resources using directives, you are not providing 
 #SBATCH --array=0-1
 ```
 
-These directives are *not* providing for four CPU cores to be divided for the simultaneous processing of two subjects; it is providing for *each of two subjects to be processed by four cores apiece*. If each subject needs two CPU cores to run its processing script, we have just overserved this job by 100%. Correctly, we would want:
+These directives are *not* providing for four CPU cores to be divided among two subjects; it is providing for *each subject to be processed by four cores apiece*. If each script needs two cores, we have just overserved this job by 100%. Correctly, we would want:
 
 ``` bash
 #SBATCH --cpus-per-task=2
@@ -282,4 +282,3 @@ The rule when writing resource allocation directives is the following:
 Not only will this make more machines eligible to run parts of your job, it will generally allow machines to run *more simultaneous copies* of your job. A machine with 8 CPU cores can accept one job of 6 cores **or** two jobs of 4 cores, effectively doubling the performance of that job.
 
 ### <a name="pitfallsanfaq">Pitfalls: an FAQ</a> ###
-
