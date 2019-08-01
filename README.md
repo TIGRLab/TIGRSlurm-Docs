@@ -11,7 +11,7 @@ When you submit any job to our Kimel cluster, it goes to any one of the availabl
 - low-moby - contains mid-tier performance computers
 - thunk - contains low performance computers
 - moby - contains all the cluster's computers
-- cudansha - contains computers which have a usable GPU
+- cudansha - contains computers which have a [usable GPU](#gres)
 
 You can inspect which computers are available in each partition by opening up a terminal emulator and using [`sinfo`](https://slurm.schedmd.com/sinfo.html) which will display something like:
 
@@ -40,14 +40,14 @@ In order to run a Slurm job, the first thing you will need is a job script. This
 sleep 60
 
 # Output a message
-echo "Hello world!" > /scratch/<your_name>/slurm_hello
+echo "Hello world!" > /scratch/<your_username>/slurm_hello
 
 # Print out which computer is running your job
-hostname >> /scratch/<your_name>/slurm_hello
+hostname >> /scratch/<your_username>/slurm_hello
 
 ```
 
-This script will write to a file with the path: `/scratch/<your_name>/slurm_hello`. 
+This script will write to a file with the path: `/scratch/<your_username>/slurm_hello`. 
 
 We can submit this job to the Slurm queue at Kimel using the [`sbatch`](https://slurm.schedmd.com/sbatch.html) command, by opening up the terminal, going to the directory containing the script and entering:
 
@@ -81,18 +81,18 @@ Once you've submitted a job you can check its status via the [`sacct`](https://s
 - `State` describes Job state and can either be `COMPLETED`, `RUNNING`, `PENDING`, or possibly `FAILED`
 - `Partition` tells you the partition used. By default **moby** is used but you can specify which partition you want to use manually with `sbatch --partition` or even better, using ['directives'](#directives).
 
-Once the job `State` is `COMPLETED` (it'll take a minute due to `sleep`), we can inspect the outputs - in this case in `/scratch/<your_name>/slurm_hello`:
+Once the job `State` is `COMPLETED` (it'll take a minute due to `sleep`), we can inspect the outputs - in this case in `/scratch/<your_username>/slurm_hello`:
 
 ```
-cat scratch/<your_name>/slurm_hello
+cat scratch/<your_username>/slurm_hello
 
 > Hello world!
 > bayes.camhres.ca
 ```
 
-As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own). However, Slurm provides no guarantee that it will run on any *specific* machine unless you request one by name. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
+As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own workstation). However, Slurm provides no guarantee that it will run on any *specific* machine unless you request one by name. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
 
-A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!**. If it isn't, the job's machine will fail to find the file and the job will crash. See **[WHY IS MY JOB FAILING](#pitfallsanfaq)** for more pitfalls! See also [Logging](#logging).
+A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!** If it isn't, the job's machine will fail to find the file and the job will crash. See **[WHY IS MY JOB FAILING](#pitfallsanfaq)** for more pitfalls! See also [Logging](#logging) for details on output logs.
 
 #### <a name="cancellingyourjob">Cancelling your Job</a>
 
@@ -105,7 +105,7 @@ scancel <jobID1> <jobID2> <jobID3> ...
 Or if you want to cancel *all your jobs*:
 
 ```
-scancel -u <your_name>
+scancel -u <your_username>
 ```
 
 Where the `-u` flag indicates `user`, as it does for `sacct` as well.
@@ -128,7 +128,7 @@ If these look like options that may be passed on the command line, that's becaus
 sbatch --partition=low-moby my-script.sh
 ```
 
-However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow the below example and place the directives inside the script. This allows you to check the directives for correctness, ensures they stay correct once they are, and allows review  of directives for past successful script runs.
+However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow the below example and place the directives inside the script. This allows you to check the directives for correctness, ensures they remain correct once they are, and allows review  of directives for past successful script runs.
 
 #### <a name="directives">Directives</a> ####
 
@@ -140,13 +140,13 @@ However, this is inconvenient and should be avoided, as it forces you to correct
 #SBATCH --mem-per-cpu=1024
 #SBATCH --time=00:20:00
 #SBATCH --partition=high-moby
-#SBATCH --output=/projects/<your_name>/slurm_%A.out
-#SBATCH --error=/projects/<your_name>/slurm_%A.err
+#SBATCH --output=/projects/<your_username>/slurm_%A.out
+#SBATCH --error=/projects/<your_username>/slurm_%A.err
 
 echo "Hello, this script ran on `hostname -s` on `date --iso`."
 ```
 
-In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why:
+In this script, we've used a series of directives to effectively delineate how this job is to be performed. Let's lay out what they do and why it matters:
 
 | directive          | short     | meaning                         | important                                  |
 |:------------------:|:---------:|:-------------------------------:|:------------------------------------------:|
@@ -177,8 +177,8 @@ In an array job, the `--array` directive is used to specify a numerical range su
 #SBATCH --time=01:00:00
 #SBATCH --partition=low-moby
 #SBATCH --array=0-249%10
-#SBATCH --output=/projects/<your_name>/logs/%x_%A_%a.out
-#SBATCH --error=/projects/<your_name>/logs/%x_%A_%a.err
+#SBATCH --output=/projects/<your_username>/logs/%x_%A_%a.out
+#SBATCH --error=/projects/<your_username>/logs/%x_%A_%a.err
 
 slurmarray=(`seq 1 250`)
 
@@ -209,7 +209,7 @@ Loggins in Slurm is performed via two directives:`--error` and `--output`. These
 
 Note that in this context, output *does not* refer to the filesystem output of the pipelines or other software you may have run as part of your Slurm script. Rather, it refers exclusively to the posix standard streams standard streams. This is to say, if your script would ordinarily write output onto the terminal during operation, that can and should be redirected using these directives into files located in commonly available filesystems.
 
-In practice, this should always be in `/scratch/<your_name>` or `/projects/<your_name>`. Sending output to anywhere else is effectively an error, as at best you won't be able to (easily) collect the logged results of your scripts together, and at worst the scripts may literally error out and your jobs will fail if the scripts have no ability to write to some location.
+In practice, this should always be in `/scratch/<your_username>` or `/projects/<your_username>`. Sending output to anywhere else is effectively an error, as at best you won't be able to (easily) collect the logged results of your scripts together, and at worst the scripts may literally error out and your jobs will fail if the scripts have no ability to write to some location.
 
 #### <a name="resourceallocation">Resource Allocation</a> ####
 
@@ -254,7 +254,7 @@ The same would implicity hold true if we used the directive `gres`. With:
 
 We're asking for the same total amount, 32K megabytes i.e. 32GB of RAM, and this will also restrict us to the same 8 machines.
 
-GRES are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job. Currently our cluster is configured with only two types of GRES: `gpu` and `mem`.
+<a name="gres">GRES</a> are *generic resources*; they stand for any countable thing which can be consumed by a Slurm job.</a> Currently our cluster is configured with only two types of GRES: `gpu` and `mem`.
 
 By specifying `--gres=mem:(COUNT)K` where (COUNT) is one of `8`, `16`, `32`, or `128`, you can generally target a job at machines willing to provide >= (COUNT)GB of memory. This allows you to specifically select machines willing to allocate enough memory for a high-memory job, independently of `cpus-per-task`.
 
