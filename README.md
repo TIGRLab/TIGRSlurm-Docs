@@ -185,7 +185,7 @@ slurmarray=(`seq 1 250`)
 echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
 ```
 
-This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`, indicating a unique datum each time.
+This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`, indicating a unique datum each time.[^1]
 
 This works for any data. Consider the following:
 
@@ -282,3 +282,13 @@ The rule when writing resource allocation directives is the following:
 Not only will this make more machines eligible to run parts of your job, it will generally allow machines to run *more simultaneous copies* of your job. A machine with 8 CPU cores can accept one job of 6 cores **or** two jobs of 4 cores, effectively doubling the performance of that job.
 
 ### <a name="pitfallsanfaq">Pitfalls: an FAQ</a> ###
+
+[^1]: If you've never used a bash array before, here's a didactic instance:
+
+``` bash
+$ basharray=(itemzero itemone itemtwo)
+
+$ echo "$bash{basharray[1]}"
+
+> itemone
+```
