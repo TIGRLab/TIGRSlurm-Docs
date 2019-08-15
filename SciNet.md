@@ -8,6 +8,14 @@ All of our publically available datasets are processed, archived, and stored on 
 - HBN (Healthy Brain Network dataset)
 - HCP (Human Connectome Project dataset)
 - PNC (*The something something something dataset Jerry what is this?*)
-- POND (Province of Ontario NeuroDevelopmental dataset)
+- POND (Province of Ontario NeuroDevelopmental Disorders dataset)
 
+To start with, we'll assume you have a Compute Canada account associated with the lab's RAC. If not, or if you don't know, visit [FAKELINKHERE](SciNet.onboarding.docs "This will be a link to SciNet onboarding documentation."). To access SciNet, can `ssh` into it using your Compute Canada account username and password:
 
+``` bash
+$ ssh <your_CC_username>@niagara.scinet.utoronto.ca
+
+> <your_CC_username>@niagara.scinet.utoronto.ca's password:
+```
+
+As explained above, this is a login node. There are seven and you'll get routed to one of them, and it doesn't matter which one.
