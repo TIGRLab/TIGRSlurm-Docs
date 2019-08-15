@@ -12,10 +12,10 @@ All of our publically available datasets are processed, archived, and stored on 
 
 To start with, we'll assume you have a Compute Canada account associated with the lab's RAC. If not, or if you don't know, visit [FAKELINKHERE](SciNet.onboarding.docs "This will be a link to SciNet onboarding documentation."). To access SciNet, can `ssh` into it using your Compute Canada account username and password:
 
-``` bash
+```
 $ ssh <your_CC_username>@niagara.scinet.utoronto.ca
 
 > <your_CC_username>@niagara.scinet.utoronto.ca's password:
 ```
 
-As explained above, this is a login node. There are seven and you'll get routed to one of them, and it doesn't matter which one.
+Once you type your password, you will be on a login node. There are seven such and you'll get routed to one of them, and it doesn't really matter which one.
