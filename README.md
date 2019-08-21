@@ -128,7 +128,7 @@ If these look like options that may be passed on the command line, that's becaus
 sbatch --partition=low-moby my-script.sh
 ```
 
-However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow the below example and place the directives inside the script. This allows you to check the directives for correctness, ensures they remain correct once they are, and allows review  of directives for past successful script runs.
+However, this is inconvenient and should be avoided, as it forces you to correctly retype each directive every time. Instead, follow the below example and place the directives inside the script. This allows you to check the directives for correctness, ensures they *remain* correct, and allows review  of directives from past successful script runs.
 
 #### <a name="directives">Directives</a> ####
 
@@ -159,8 +159,6 @@ In this script, we've used a series of directives to effectively delineate how t
 | `--output`/`error` | `-o`/`-e` | The location of your log files. | *Always* in your scratch or projects.      |
 | `--gres`           | n/a       | Allocate generic resources.     | GPUs and specific amounts of memory.       |
 
-
-
 Using [Resource Allocation](#resourceallocation), [Logging](#logging), and [Array Jobs](#arrayjobs) in Slurm will be covered later in their own respective sections in more detail.
 
 #### <a name="arrayjobs">Array Jobs</a> ####
@@ -177,15 +175,15 @@ In an array job, the `--array` directive is used to specify a numerical range su
 #SBATCH --time=01:00:00
 #SBATCH --partition=low-moby
 #SBATCH --array=0-249%10
-#SBATCH --output=/projects/<your_username>/logs/%x_%A_%a.out
-#SBATCH --error=/projects/<your_username>/logs/%x_%A_%a.err
+#SBATCH --output=/projects/<your_username>/logs/%x_%j_%a.out
+#SBATCH --error=/projects/<your_username>/logs/%x_%j_%a.err
 
 slurmarray=(`seq 1 250`)
 
 echo "The number ${slurmarray[$SLURM_ARRAY_TASK_ID]} appeared on `hostname -s`"
 ```
 
-This script generates an array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`, indicating a unique datum each time.[^1]
+This script generates a bash array called `slurmarray` filled with the numbers 1 through 250, and echoes a different number on each machine the script executes on. Every time Slurm runs this script it provides a unique value for the variable `SLURM_ARRAY_TASK_ID`, indicating a unique datum each time.[^1]
 
 This works for any data. Consider the following:
 
@@ -205,11 +203,29 @@ This is the `Array Task Throttle`. The `Array Task Throttle` allows you to cap t
 
 #### <a name="logging">Logging</a> ####
 
-Loggins in Slurm is performed via two directives:`--error` and `--output`. These are very important but reasonably simple directives which specify via absolute filepath the name of a a file to which error and output are logged in your script.
+Logging in Slurm is performed via two directives:`--error` and `--output`. These are very important but reasonably simple directives which specify via absolute filepath the name of a file to which error and output are logged in your script.
 
-Note that in this context, output *does not* refer to the filesystem output of the pipelines or other software you may have run as part of your Slurm script. Rather, it refers exclusively to the posix standard streams standard streams. This is to say, if your script would ordinarily write output onto the terminal during operation, that can and should be redirected using these directives into files located in commonly available filesystems.
+Note that in this context, output *does not* refer to the data files or other objects created by the pipelines or other software in your Slurm script. Rather, it refers exclusively to the posix standard streams. This is to say, if your script would ordinarily print output onto the terminal while running, these directives let you accumulate that output wherever you want.
 
-In practice, this should always be in `/scratch/<your_username>` or `/projects/<your_username>`. Sending output to anywhere else is effectively an error, as at best you won't be able to (easily) collect the logged results of your scripts together, and at worst the scripts may literally error out and your jobs will fail if the scripts have no ability to write to some location.
+For instance, if you have to process 40 subjects, one per compute node, and you want your output to go into `/home/<your_username>/joboutputs/<subjectid>.txt`, and you create that directory in your homedir, your job will fail if the script runs on any computer that isn't the current computer you're working at, *unless the script itself makes the `joboutputs` directory*.
+
+In practice, it's simpler and neater to just have every script write to a common place, like your /scratch or /projects. It's what they're for.
+
+Job output and error names may have certain special patterns. Above, for instance, we saw the example `%x_%j_%a.out`; these are replacements which expand to, respectively, the `<job_name>_<job_id>_<array_id>`. Below are the meanings of these expansions
+
+| replacement | meaning                      | example |
+|:-----------:|:----------------------------:|:-------:|
+| `%A`        | The 'head' of a slurm array. |         |
+| `%a`        | The slurm array task index.  |         |
+| `%J`        | The                          |         |
+| `%j`        |                              |         |
+| `%N`        |                              |         |
+| `%n`        |                              |         |
+| `%s`        |                              |         |
+| `%t`        |                              |         |
+| `%u`        |                              |         |
+| `%x`        |                              |         |
+
 
 #### <a name="resourceallocation">Resource Allocation</a> ####
 
