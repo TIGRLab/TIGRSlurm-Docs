@@ -57,7 +57,7 @@ sbatch hello_slurm.sh
 
 You will see a message saying:
 
-```shell
+```bash
 Submitted batch job <jobid>
 ```
 
@@ -75,7 +75,7 @@ Once you've submitted a job you can check its status via the [`sacct`](https://s
 ```
 
 - `JobID` is an ID which uniquely identifies the job
-- `JobName` is the name given to the job. By default it is the name of the script but see `point to directives` for details on how to customize this
+- `JobName` is the name given to the job. By default it is the name of the script but see `['directives'](#directives)` for details on how to customize this
 - `Account` will always be tigrlab on our local Kimel cluster
 - `AllocCPUS` is how many CPUs were given to the ask
 - `State` describes Job state and can either be `COMPLETED`, `RUNNING`, `PENDING`, or possibly `FAILED`
@@ -92,7 +92,7 @@ cat scratch/<your_username>/slurm_hello
 
 As you can see, a computer from the Kimel lab has run your script for you (it could even have been your own workstation). However, Slurm provides no guarantee that it will run on any *specific* machine unless you request one by name. Instead, Slurm simply provides you the ability to ensure your script runs *somewhere* on our cluster.
 
-A consequence of this is that if you need your job to use a file, or touch a file in a directory, **it must be accessible by all computers in the lab!** If it isn't, the job's machine will fail to find the file and the job will crash. See [**Why are my jobs failing?**](#pitfallsanfaq) for more pitfalls! See also [Logging](#logging) for details on output logs.
+A consequence of this is that if you need your job to access a file or directory, **it must be accessible on all computers in the lab!** If it isn't, the job's machine will fail to find the file and the job will crash. See [**Why are my jobs failing?**](#pitfallsanfaq) for more pitfalls! See also [Logging](#logging) for details on output logs.
 
 #### <a name="cancellingyourjob">Cancelling your Job</a>
 
