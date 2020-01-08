@@ -48,7 +48,7 @@ echo "$SLURM_ARRAY_TASK_ID (a number) was found on $SLURMD_NODENAME (a hostname)
 
 	has the following structure
 		(where `I` is the value of SLURM_ARRAY_TASK_ID, equal to the index, and)
-	    (where `N` is the value of SLURMD_NODENAME as selected from the cluster):
+		(where `N` is the value of SLURMD_NODENAME as selected from the cluster)
 
 | index | 0           | 1           | 2           | 3           | 4           |
 |:-----:|:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|
