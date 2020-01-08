@@ -53,13 +53,11 @@ echo "$SLURM_ARRAY_TASK_ID (a number) was found on $SLURMD_NODENAME (a hostname)
 | index | 0           | 1           | 2           | 3           | 4           |
 |:-----:|:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|
 | alloc | alloc[N]    | alloc[N]    | alloc[N]    | alloc[N]    | alloc[N]    |
-|:-----:|:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|
 | value | script[I,N] | script[I,N] | script[I,N] | script[I,N] | script[I,N] |
-|       |             |             |             |             |             |
-               ↑             ↑             ↑             ↑             ↑
-  _____________|_____________|_____________|_____________|_____________|
- |
- `echo "$SLURM_ARRAY_TASK_ID (a number) was found on $SLURMD_NODENAME (a hostname)"`
+
+```sh
+echo "$SLURM_ARRAY_TASK_ID (a number) was found on $SLURMD_NODENAME (a hostname)"
+```
 
 Slurm allocates N many sets of [requested resources](https://github.com/TIGRLab/TIGRSlurm-Docs/blob/master/README.md#resourceallocation) from the cluster/partition/nodelist, assigns indices to them, and runs a copy of the attached script, with appropriate values for each of the slurm relevant variables (`SLURM_ARRAY_TASK_ID` or `SLURMD_NODENAME`, for example).
 
@@ -82,12 +80,8 @@ The problem with this may not necessarily be obvious, until we consider the stru
 | index | 0        | 1        | 2        | 3        | 4        |
 |:-----:|:--------:|:--------:|:--------:|:--------:|:--------:|
 | alloc | alloc[N] | alloc[N] | alloc[N] | alloc[N] | alloc[N] |
-|:-----:|:--------:|:--------:|:--------:|:--------:|:--------:|
 | value | loop     | loop     | loop     | loop     | loop     |
-|       |          |          |          |          |          |
-             ↑           ↑          ↑         ↑          ↑
-  ___________|___________|__________|_________|__________|
- |
+
  ``` sh
  SUBJECTS="/path/to/my/scans.csv"
 
