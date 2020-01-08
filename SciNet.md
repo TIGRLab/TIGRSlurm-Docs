@@ -92,4 +92,6 @@ The problem with this may not necessarily be obvious, until we consider the stru
 
 The loop body, which processes all subjects by itself; is run independently on each allocated node, thus duplicating the processing of all subjects. If the output of the `process` program is located in a cluster-wide accessible filesystem, such as `/scratch/myname`, the result is that the work duplicated on each node will go to the same files in the same directories, either overwriting or blocking.
 
-They key function of HPC parallelisation is to divide a large job (a processing job that needs to hit hundreds of subjects), and divide that job into the smallest independent units - these may then be spread across the HPC cluster. As such the right way to write a Slurm script for SciNet is to write the script *as though you only want to process one subject*.
+They key function of HPC parallelisation is to divide a large job (a processing job that needs to hit hundreds of subjects), and divide that job into the smallest independent units - these may then be spread across the HPC cluster. As such the right way to write a Slurm script for a cluster such as ours is to write the script *as though you only want to process one subject*.
+
+Though it is counter-intuitive, it comports with the fact that copies of this script will be sourced to many nodes, and each copy should only handle one single subject, so as not to duplicate the work of any other copy of itself running on any other node.
