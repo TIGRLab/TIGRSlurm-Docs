@@ -252,18 +252,17 @@ In practice, it's simpler and neater to just have every script write to a common
 
 Job output and error names may have certain special patterns. Above, for instance, we saw the example `%x_%j_%a.out`; these are replacements which expand to, respectively, the `<job_name>_<job_id>_<array_id>`. Below are the meanings of these expansions
 
-| replacement | meaning                      | example |
-|:-----------:|:----------------------------:|:-------:|
-| `%A`        | The 'head' of a slurm array. |         |
-| `%a`        | The slurm array task index.  |         |
-| `%J`        | The                          |         |
-| `%j`        |                              |         |
-| `%N`        |                              |         |
-| `%n`        |                              |         |
-| `%s`        |                              |         |
-| `%t`        |                              |         |
-| `%u`        |                              |         |
-| `%x`        |                              |         |
+| replacement | meaning                      | example      |
+|             |                              | (`123.3_12`) |
+|:-----------:|:----------------------------:|:------------:|
+| `%A`        | The 'head' of a slurm array. | `123`        |
+| `%a`        | The slurm array task index.  | `123_12`     |
+| `%J`        | The job id + the job step.   | `123.3`      |
+| `%j`        | The job id by itself.        | `123`        |
+| `%N`        | The hostname, in brief.      | `bayes`      |
+| `%s`        | The job step by itself.      | `3`          |
+| `%u`        | Your username.               | `exmplusr`   |
+| `%x`        | The job name.                | `exmpljob`   |
 
 Using these, you can cause Slurm to separate job output by node, by subject, by *`job step`*, and so on.
 
