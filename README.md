@@ -75,7 +75,7 @@ Once you've submitted a job you can check its status via the [`sacct`](https://s
 ```
 
 - `JobID` is an ID which uniquely identifies the job
-- `JobName` is the name given to the job. By default it is the name of the script but see `['directives'](#Directives)` for details on how to customize this
+- `JobName` is the name given to the job. By default it is the name of the script but see `['directives'](#directives)` for details on how to customize this
 - `Account` will always be tigrlab on our local Kimel cluster
 - `AllocCPUS` is how many CPUs were given to the ask
 - `State` describes Job state and can either be `COMPLETED`, `RUNNING`, `PENDING`, or possibly `FAILED`
